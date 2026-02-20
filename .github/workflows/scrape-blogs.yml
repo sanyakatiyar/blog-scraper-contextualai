@@ -1,0 +1,162 @@
+name: Scrape Blogs
+
+on:
+  # Run daily at 6 AM UTC
+  schedule:
+    - cron: '0 6 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Specific source to scrape (leave empty for all)'
+        required: false
+        default: ''
+      rss_only:
+        description: 'Only scrape RSS sources (more reliable)'
+        required: false
+        default: 'false'
+        type: boolean
+      dry_run:
+        description: 'Dry run (skip upload)'
+        required: false
+        default: 'false'
+        type: boolean
+      max_articles:
+        description: 'Max articles per source'
+        required: false
+        default: '50'
+  
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  scrape:
+    name: Scrape Blog Content
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Create data directory
+        run: mkdir -p data/raw
+      
+      - name: Restore cached data
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: scraped-data-${{ github.run_number }}
+          restore-keys: |
+            scraped-data-
+      
+      - name: Run unified scraper
+        env:
+          CONTEXTUAL_API_KEY: ${{ secrets.CONTEXTUAL_API_KEY }}
+          CONTEXTUAL_DATASTORE_ID: ${{ secrets.CONTEXTUAL_DATASTORE_ID }}
+          LOG_LEVEL: INFO
+          LOG_FORMAT: text
+        run: |
+          # Build command
+          CMD="python scripts/run_unified.py"
+          
+          # Specific source
+          if [ -n "${{ github.event.inputs.source }}" ]; then
+            CMD="$CMD --source ${{ github.event.inputs.source }}"
+          fi
+          
+          # RSS only
+          if [ "${{ github.event.inputs.rss_only }}" == "true" ]; then
+            CMD="$CMD --rss-only"
+          fi
+          
+          # Dry run
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            CMD="$CMD --dry-run"
+          fi
+          
+          # Max articles
+          if [ -n "${{ github.event.inputs.max_articles }}" ]; then
+            CMD="$CMD --max-articles ${{ github.event.inputs.max_articles }}"
+          fi
+          
+          echo "Running: $CMD"
+          $CMD
+      
+      - name: Upload scrape report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scrape-report-${{ github.run_number }}
+          path: |
+            data/raw/scrape_report.json
+            data/raw/metadata/
+          retention-days: 30
+      
+      - name: Upload scraped articles
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scraped-articles-${{ github.run_number }}
+          path: data/raw/articles/
+          retention-days: 7
+      
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## 📊 Scrape Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "data/raw/scrape_report.json" ]; then
+            # Extract key metrics
+            TOTAL=$(cat data/raw/scrape_report.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('total_scraped', 0))")
+            UPLOADED=$(cat data/raw/scrape_report.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('total_uploaded', 0))")
+            ERRORS=$(cat data/raw/scrape_report.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('total_errors', 0))")
+            
+            echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Articles Scraped | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| Articles Uploaded | $UPLOADED |" >> $GITHUB_STEP_SUMMARY
+            echo "| Errors | $ERRORS |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            echo "### Full Report" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat data/raw/scrape_report.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ No report generated" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Check for failures
+        run: |
+          if [ -f "data/raw/scrape_report.json" ]; then
+            ERRORS=$(cat data/raw/scrape_report.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('total_errors', 0))")
+            if [ "$ERRORS" -gt "0" ]; then
+              echo "::warning::Scraping completed with $ERRORS errors"
+            fi
+          fi
+
+  notify:
+    name: Send Notification
+    needs: scrape
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+      - name: Notify on failure
+        run: |
+          echo "❌ Scraping job failed!"
+          # Add notification logic here (Slack, email, etc.)

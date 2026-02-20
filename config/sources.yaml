@@ -1,0 +1,344 @@
+# Blog Sources Configuration for Context Crew
+# 
+# Sources are divided into two categories:
+# 1. RSS Sources - Preferred, more reliable
+# 2. HTML Sources - Fallback when no RSS available
+
+# =============================================================================
+# RSS Sources (Preferred - These rarely break)
+# =============================================================================
+
+rss_sources:
+  langchain:
+    name: "LangChain Blog"
+    rss_url: "https://blog.langchain.dev/rss/"
+    base_url: "https://blog.langchain.dev"
+    enabled: true
+    priority: 1
+    default_tags:
+      - langchain
+      - agents
+      - chains
+      - rag
+      - langgraph
+      - langsmith
+
+  huggingface:
+    name: "Hugging Face Blog"
+    rss_url: "https://huggingface.co/blog/feed.xml"
+    base_url: "https://huggingface.co"
+    enabled: true
+    priority: 1
+    default_tags:
+      - huggingface
+      - transformers
+      - models
+      - nlp
+      - open-source
+
+  # Community-maintained RSS feeds (from github.com/Olshansk/rss-feeds)
+  # These are scraped hourly and published as XML files
+  anthropic_research:
+    name: "Anthropic Research"
+    rss_url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_research.xml"
+    base_url: "https://www.anthropic.com"
+    enabled: true
+    priority: 1
+    default_tags:
+      - anthropic
+      - claude
+      - research
+      - safety
+      - interpretability
+
+  anthropic_news:
+    name: "Anthropic News"
+    rss_url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_news.xml"
+    base_url: "https://www.anthropic.com"
+    enabled: true
+    priority: 1
+    default_tags:
+      - anthropic
+      - claude
+      - news
+      - announcements
+
+  anthropic_engineering:
+    name: "Anthropic Engineering"
+    rss_url: "https://raw.githubusercontent.com/Olshansk/rss-feeds/main/feeds/feed_anthropic_engineering.xml"
+    base_url: "https://www.anthropic.com"
+    enabled: true
+    priority: 1
+    default_tags:
+      - anthropic
+      - engineering
+      - infrastructure
+
+  openai_news:
+    name: "OpenAI News"
+    rss_url: "https://openai.com/news/rss.xml"
+    base_url: "https://openai.com"
+    enabled: true
+    priority: 1
+    default_tags:
+      - openai
+      - llm
+      - agents
+      - rag
+      - safety
+
+  aws_ml:
+    name: "AWS Machine Learning Blog"
+    rss_url: "https://aws.amazon.com/blogs/machine-learning/feed/"
+    base_url: "https://aws.amazon.com/blogs/machine-learning"
+    enabled: true
+    priority: 1
+    default_tags:
+      - mlops
+      - rag
+      - agents
+      - retrieval
+      - evaluation
+
+  msr_blog:
+    name: "Microsoft Research Blog"
+    rss_url: "https://www.microsoft.com/en-us/research/blog/feed/"
+    base_url: "https://www.microsoft.com/en-us/research/blog/"
+    enabled: true
+    priority: 1
+    default_tags:
+      - research
+      - llm
+      - retrieval
+      - agents
+      - evaluation
+
+  bair_blog:
+    name: "BAIR Blog"
+    rss_url: "https://bair.berkeley.edu/blog/feed.xml"
+    base_url: "https://bair.berkeley.edu"
+    enabled: true
+    priority: 1
+    default_tags:
+      - research
+      - nlp
+      - llm
+      - retrieval
+      - agents
+
+  the_gradient:
+    name: "The Gradient"
+    rss_url: "https://thegradientpub.substack.com/feed/"
+    base_url: "https://thegradient.pub"
+    enabled: true
+    priority: 2
+    default_tags:
+      - llm
+      - retrieval
+      - interpretability
+      - evaluation
+      - policy
+
+  hackernews:
+    name: "Hacker News"
+    rss_url: "https://news.ycombinator.com/rss"
+    base_url: "https://news.ycombinator.com"
+    enabled: true
+    priority: 2
+    default_tags:
+      - trends
+      - agents
+      - llm
+      - retrieval
+      - tooling
+
+# =============================================================================
+# HTML Sources (Fallback - May break if sites redesign)
+# =============================================================================
+
+html_sources:
+  llamaindex:
+    name: "LlamaIndex Blog"
+    base_url: "https://www.llamaindex.ai"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - llamaindex
+      - rag
+      - indexing
+      - retrieval
+      - llm
+
+  pinecone:
+    name: "Pinecone Learn"
+    base_url: "https://www.pinecone.io"
+    blog_path: "/learn"
+    enabled: true
+    priority: 2
+    default_tags:
+      - pinecone
+      - vector-database
+      - embeddings
+      - similarity-search
+
+  weaviate:
+    name: "Weaviate Blog"
+    base_url: "https://weaviate.io"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - weaviate
+      - vector-search
+      - rag
+      - semantic-search
+
+  cohere:
+    name: "Cohere Blog"
+    base_url: "https://cohere.com"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - cohere
+      - nlp
+      - embeddings
+      - rerank
+
+  databricks_blog:
+    name: "Databricks Blog"
+    base_url: "https://www.databricks.com"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - agents
+      - governance
+      - mlflow
+      - evaluation
+      - enterprise
+
+  meta_ai_blog:
+    name: "Meta AI Blog"
+    base_url: "https://ai.meta.com"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - llama
+      - open-models
+      - retrieval
+      - multimodal
+      - agents
+
+  mistral_news:
+    name: "Mistral AI News"
+    base_url: "https://mistral.ai"
+    blog_path: "/news"
+    enabled: true
+    priority: 2
+    default_tags:
+      - models
+      - releases
+      - inference
+      - evals
+      - open-weights
+
+  arize_blog:
+    name: "Arize - The Evaluator"
+    base_url: "https://arize.com"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - agent-evals
+      - tracing
+      - llm-evals
+      - reliability
+      - security
+
+  langfuse_blog:
+    name: "Langfuse Blog"
+    base_url: "https://langfuse.com"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - tracing
+      - evals
+      - agents
+      - prompt
+      - cost
+
+  ragas_blog:
+    name: "Ragas Blog"
+    base_url: "https://blog.ragas.io"
+    blog_path: "/"
+    enabled: true
+    priority: 2
+    default_tags:
+      - rag-eval
+      - llm-as-judge
+      - synthetic-data
+      - benchmarks
+      - metrics
+
+# =============================================================================
+# Global Settings
+# =============================================================================
+
+global:
+  user_agent: "ContextCrewBot/1.0 (Academic Research; UW Capstone Project)"
+  default_rate_limit_seconds: 2
+  max_retries: 3
+  retry_delay_seconds: 5
+  request_timeout_seconds: 30
+  max_articles_per_source: 50
+
+# =============================================================================
+# Content Filtering
+# =============================================================================
+
+filtering:
+  min_word_count: 200
+  max_word_count: 50000
+  
+  # Articles must contain at least one of these keywords
+  relevant_keywords:
+    - rag
+    - retrieval augmented generation
+    - retrieval
+    - llm
+    - language models
+    - agent
+    - context engineering
+    - context windows
+    - embedding
+    - vector search
+    - semantic search
+    - generation
+    - prompt engineering
+    - prompt
+    - fine-tuning
+    - transformer
+    - attention mechanisms
+    - chain of thought
+    - reasoning
+    - re-ranking
+    - inference
+    - knowledge graphs
+    - instruction following
+    - co-reference resolution
+    - langchain
+    - llamaindex
+  
+  # Skip URLs containing these patterns
+  exclude_patterns:
+    - /careers
+    - /jobs
+    - /pricing
+    - /terms
+    - /privacy
+    - /login
+    - /signup
