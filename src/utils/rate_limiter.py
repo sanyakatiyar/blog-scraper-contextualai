@@ -84,7 +84,7 @@ class RetryHandler:
 
     def get_delay(self, attempt: int) -> float:
         """Calculate delay for the given attempt number (0-indexed)."""
-        delay = self.base_delay * (self.exponential_base ** attempt)
+        delay = self.base_delay * (self.exponential_base**attempt)
         return min(delay, self.max_delay)
 
     def should_retry(self, attempt: int, exception: Exception | None = None) -> bool:

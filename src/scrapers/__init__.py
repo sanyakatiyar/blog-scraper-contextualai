@@ -38,7 +38,9 @@ SCRAPER_REGISTRY: dict[str, type[BaseScraper]] = {
 def get_scraper(scraper_class: str) -> type[BaseScraper]:
     """Get a scraper class by name (legacy)."""
     if scraper_class not in SCRAPER_REGISTRY:
-        raise ValueError(f"Unknown scraper: {scraper_class}. Available: {list(SCRAPER_REGISTRY.keys())}")
+        raise ValueError(
+            f"Unknown scraper: {scraper_class}. Available: {list(SCRAPER_REGISTRY.keys())}"
+        )
     return SCRAPER_REGISTRY[scraper_class]
 
 

@@ -114,7 +114,7 @@ class TestAnthropicScraper:
         assert scraper.base_url == "https://www.anthropic.com"
         assert "/research" in scraper.blog_path
 
-    @patch.object(AnthropicScraper, 'fetch_page')
+    @patch.object(AnthropicScraper, "fetch_page")
     def test_get_article_urls(self, mock_fetch):
         """Test URL extraction from Anthropic research page."""
         # Create mock HTML
@@ -129,6 +129,7 @@ class TestAnthropicScraper:
         </html>
         """
         from bs4 import BeautifulSoup
+
         mock_fetch.return_value = BeautifulSoup(html, "lxml")
 
         scraper = AnthropicScraper()

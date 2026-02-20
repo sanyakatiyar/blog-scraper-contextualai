@@ -40,9 +40,12 @@ class ContextualUploader:
         if self._client is None:
             try:
                 from contextual import ContextualAI
+
                 self._client = ContextualAI(api_key=self.api_key)
             except ImportError:
-                logger.error("contextual-client package not installed. Run: pip install contextual-client")
+                logger.error(
+                    "contextual-client package not installed. Run: pip install contextual-client"
+                )
                 raise
         return self._client
 
@@ -131,30 +134,34 @@ class ContextualUploader:
             return results
 
         for i, article in enumerate(articles):
-            logger.info(f"Uploading article {i+1}/{len(articles)}: {article.get('title', 'Unknown')[:40]}...")
+            logger.info(
+                f"Uploading article {i+1}/{len(articles)}: {article.get('title', 'Unknown')[:40]}..."
+            )
 
             doc_id = self.upload_article(article)
 
             if doc_id:
                 results["successful"] += 1
-                results["document_ids"].append({
-                    "article_id": article.get("id"),
-                    "document_id": doc_id,
-                })
+                results["document_ids"].append(
+                    {
+                        "article_id": article.get("id"),
+                        "document_id": doc_id,
+                    }
+                )
             else:
                 results["failed"] += 1
-                results["errors"].append({
-                    "article_id": article.get("id"),
-                    "url": article.get("url"),
-                })
+                results["errors"].append(
+                    {
+                        "article_id": article.get("id"),
+                        "url": article.get("url"),
+                    }
+                )
 
             # Rate limiting
             if i < len(articles) - 1:
                 time.sleep(delay_between)
 
-        logger.info(
-            f"Batch upload complete: {results['successful']}/{results['total']} successful"
-        )
+        logger.info(f"Batch upload complete: {results['successful']}/{results['total']} successful")
 
         return results
 
@@ -226,11 +233,13 @@ class ContextualUploader:
         try:
             documents = []
             for doc in self.client.datastores.documents.list(datastore_id=self.datastore_id):
-                documents.append({
-                    "id": doc.id,
-                    "name": getattr(doc, "name", None),
-                    "status": getattr(doc, "ingestion_job_status", None),
-                })
+                documents.append(
+                    {
+                        "id": doc.id,
+                        "name": getattr(doc, "name", None),
+                        "status": getattr(doc, "ingestion_job_status", None),
+                    }
+                )
             return documents
         except Exception as e:
             logger.error(f"Failed to list documents: {str(e)}")

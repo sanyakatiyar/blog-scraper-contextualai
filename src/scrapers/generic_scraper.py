@@ -38,7 +38,7 @@ class GenericScraper(BaseScraper):
         base_url: str,
         blog_path: str = "/blog",
         rss_url: str | None = None,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(
             source_name=source_name,
@@ -88,7 +88,7 @@ class GenericScraper(BaseScraper):
             feed = feedparser.parse(rss_url)
             self._rss_feed = feed  # Cache for article scraping
 
-            for entry in feed.entries[:self.max_articles]:
+            for entry in feed.entries[: self.max_articles]:
                 if entry.get("link"):
                     urls.append(entry.link)
 
@@ -141,10 +141,14 @@ class GenericScraper(BaseScraper):
             # Check if URL looks like a blog post
             # Usually has a slug or date pattern
             path = urlparse(full_url).path
-            if (re.search(r"/\d{4}/\d{2}/", path) or len(path.split("/")) >= 2) and full_url not in urls and full_url != self.blog_url:
+            if (
+                (re.search(r"/\d{4}/\d{2}/", path) or len(path.split("/")) >= 2)
+                and full_url not in urls
+                and full_url != self.blog_url
+            ):
                 urls.append(full_url)
 
-        return urls[:self.max_articles]
+        return urls[: self.max_articles]
 
     def scrape_article(self, url: str) -> dict[str, Any] | None:
         """Scrape a single article."""

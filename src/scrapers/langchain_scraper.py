@@ -60,7 +60,12 @@ class LangChainScraper(BaseScraper):
                 path = full_url.replace(self.base_url, "").strip("/")
 
                 # Valid post: has a slug, no special characters indicating category
-                if path and "/" not in path and not path.startswith(("tag", "author", "page")) and full_url not in urls:
+                if (
+                    path
+                    and "/" not in path
+                    and not path.startswith(("tag", "author", "page"))
+                    and full_url not in urls
+                ):
                     urls.append(full_url)
 
         # Handle pagination
@@ -79,7 +84,12 @@ class LangChainScraper(BaseScraper):
 
                 if full_url.startswith(self.base_url):
                     path = full_url.replace(self.base_url, "").strip("/")
-                    if path and "/" not in path and not path.startswith(("tag", "author", "page")) and full_url not in urls:
+                    if (
+                        path
+                        and "/" not in path
+                        and not path.startswith(("tag", "author", "page"))
+                        and full_url not in urls
+                    ):
                         urls.append(full_url)
 
             if len(urls) == initial_count:

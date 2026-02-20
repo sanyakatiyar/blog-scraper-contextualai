@@ -143,11 +143,13 @@ class LocalStorage:
                 with open(metadata_path, encoding="utf-8") as f:
                     metadata = json.load(f)
                     for article_id, info in metadata.get("articles", {}).items():
-                        articles.append({
-                            "id": article_id,
-                            "source": src,
-                            **info,
-                        })
+                        articles.append(
+                            {
+                                "id": article_id,
+                                "source": src,
+                                **info,
+                            }
+                        )
 
         return articles
 
@@ -178,9 +180,7 @@ class LocalStorage:
             raw = json.load(f)
         return {source: set(urls) for source, urls in raw.items()}
 
-    def save_url_registry(
-        self, registry_path: Path, registry: dict[str, set[str]]
-    ) -> None:
+    def save_url_registry(self, registry_path: Path, registry: dict[str, set[str]]) -> None:
         """
         Save the persistent scraped-URL registry to a JSON file.
 

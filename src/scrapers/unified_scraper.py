@@ -30,6 +30,7 @@ from src.utils import get_logger, rate_limiter
 # Load sources and filtering config from YAML
 # =============================================================================
 
+
 def load_sources_config() -> tuple[dict, dict, dict, dict]:
     """
     Load RSS feeds, HTML sources, filtering rules, and global settings
@@ -103,11 +104,13 @@ class UnifiedScraper:
             "user_agent",
             "ContextCrewBot/1.0 (Academic Research; UW Capstone Project)",
         )
-        session.headers.update({
-            "User-Agent": user_agent,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-        })
+        session.headers.update(
+            {
+                "User-Agent": user_agent,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+            }
+        )
         return session
 
     def _passes_filters(self, article: dict[str, Any]) -> bool:
@@ -132,18 +135,14 @@ class UnifiedScraper:
         word_count = article.get("word_count", 0)
 
         if word_count < min_wc or word_count > max_wc:
-            self.logger.debug(
-                f"Filtered out (word count {word_count}): {article.get('title', '')}"
-            )
+            self.logger.debug(f"Filtered out (word count {word_count}): {article.get('title', '')}")
             return False
 
         keywords = FILTERING.get("relevant_keywords", [])
         if keywords:
             text = (article.get("title", "") + " " + article.get("content_text", "")).lower()
             if not any(kw.lower() in text for kw in keywords):
-                self.logger.debug(
-                    f"Filtered out (no keyword match): {article.get('title', '')}"
-                )
+                self.logger.debug(f"Filtered out (no keyword match): {article.get('title', '')}")
                 return False
 
         return True
@@ -224,7 +223,7 @@ class UnifiedScraper:
                 return []
 
             articles = []
-            for entry in feed.entries[:self.max_articles]:
+            for entry in feed.entries[: self.max_articles]:
                 # Skip excluded URLs early
                 entry_url = entry.get("link", "")
                 if entry_url and self._is_excluded_url(entry_url):
@@ -388,7 +387,7 @@ class UnifiedScraper:
 
         # Scrape each article
         articles = []
-        for url in urls[:self.max_articles]:
+        for url in urls[: self.max_articles]:
             article = self._scrape_html_article(url, source_id, config)
             if article and self._passes_filters(article):
                 articles.append(article)
@@ -438,7 +437,12 @@ class UnifiedScraper:
 
                 # Check if URL looks like an article (has a path segment)
                 path = urlparse(full_url).path
-                if path and path != "/" and full_url not in urls and urlparse(full_url).netloc == urlparse(base_url).netloc:
+                if (
+                    path
+                    and path != "/"
+                    and full_url not in urls
+                    and urlparse(full_url).netloc == urlparse(base_url).netloc
+                ):
                     urls.append(full_url)
 
             return urls
@@ -500,7 +504,9 @@ class UnifiedScraper:
             for selector in ["time", 'meta[property="article:published_time"]', '[class*="date"]']:
                 elem = soup.select_one(selector)
                 if elem:
-                    date_str = elem.get("datetime") or elem.get("content") or elem.get_text(strip=True)
+                    date_str = (
+                        elem.get("datetime") or elem.get("content") or elem.get_text(strip=True)
+                    )
                     try:
                         published_date = date_parser.parse(date_str)
                         break
@@ -557,7 +563,11 @@ class UnifiedScraper:
         word_count = len(content_text.split())
 
         # Generate summary
-        summary = content_text[:500].rsplit(" ", 1)[0] + "..." if len(content_text) > 500 else content_text
+        summary = (
+            content_text[:500].rsplit(" ", 1)[0] + "..."
+            if len(content_text) > 500
+            else content_text
+        )
 
         return {
             "id": article_id,
@@ -582,6 +592,7 @@ class UnifiedScraper:
 # =============================================================================
 # Convenience functions
 # =============================================================================
+
 
 def get_all_sources() -> dict[str, dict]:
     """Get all available sources (RSS + HTML)."""

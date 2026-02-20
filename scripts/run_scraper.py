@@ -85,7 +85,9 @@ def run_scraper_for_source(
     # Instantiate scraper with config
     scraper_kwargs = {
         "max_articles": source_config.get("max_articles", settings.max_articles_per_source),
-        "rate_limit_seconds": source_config.get("rate_limit_seconds", settings.scrape_delay_seconds),
+        "rate_limit_seconds": source_config.get(
+            "rate_limit_seconds", settings.scrape_delay_seconds
+        ),
     }
 
     # For generic scraper, pass additional config

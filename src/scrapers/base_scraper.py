@@ -48,13 +48,15 @@ class BaseScraper(ABC):
     def _create_session(self) -> requests.Session:
         """Create a configured requests session."""
         session = requests.Session()
-        session.headers.update({
-            "User-Agent": "ContextCrewBot/1.0 (Academic Research; UW Capstone Project)",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate",
-            "Connection": "keep-alive",
-        })
+        session.headers.update(
+            {
+                "User-Agent": "ContextCrewBot/1.0 (Academic Research; UW Capstone Project)",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate",
+                "Connection": "keep-alive",
+            }
+        )
         return session
 
     @property
@@ -139,7 +141,7 @@ class BaseScraper(ABC):
         self.logger.info(f"Found {len(urls)} article URLs")
 
         # Limit to max articles
-        urls = urls[:self.max_articles]
+        urls = urls[: self.max_articles]
 
         # Scrape each article
         articles = []
@@ -273,12 +275,16 @@ class BaseScraper(ABC):
         word_count = len(content_text.split())
 
         # Generate summary (first 500 chars)
-        summary = content_text[:500].rsplit(" ", 1)[0] + "..." if len(content_text) > 500 else content_text
+        summary = (
+            content_text[:500].rsplit(" ", 1)[0] + "..."
+            if len(content_text) > 500
+            else content_text
+        )
 
         # Check for code blocks
         has_code_blocks = bool(
-            re.search(r"```|<pre>|<code>", content_html) or
-            re.search(r"^\s{4,}\S", content_text, re.MULTILINE)
+            re.search(r"```|<pre>|<code>", content_html)
+            or re.search(r"^\s{4,}\S", content_text, re.MULTILINE)
         )
 
         return {

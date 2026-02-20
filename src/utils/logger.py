@@ -96,12 +96,14 @@ class ScrapeMetrics:
         self.articles_uploaded[source] = self.articles_uploaded.get(source, 0) + count
 
     def record_error(self, source: str, url: str, error: str) -> None:
-        self.errors.append({
-            "source": source,
-            "url": url,
-            "error": error,
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
+        self.errors.append(
+            {
+                "source": source,
+                "url": url,
+                "error": error,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
     def record_skipped(self, source: str, count: int = 1) -> None:
         self.skipped[source] = self.skipped.get(source, 0) + count
@@ -141,9 +143,9 @@ class ScrapeMetrics:
         ]
 
         for source in set(
-            list(self.articles_scraped.keys()) +
-            list(self.articles_uploaded.keys()) +
-            list(self.skipped.keys())
+            list(self.articles_scraped.keys())
+            + list(self.articles_uploaded.keys())
+            + list(self.skipped.keys())
         ):
             scraped = self.articles_scraped.get(source, 0)
             uploaded = self.articles_uploaded.get(source, 0)

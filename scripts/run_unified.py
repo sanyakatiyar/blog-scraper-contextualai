@@ -40,12 +40,22 @@ Examples:
 
     parser.add_argument("--list", action="store_true", help="List all available sources")
     parser.add_argument("--source", type=str, help="Scrape a specific source")
-    parser.add_argument("--rss-only", action="store_true", help="Only scrape RSS sources (more reliable)")
+    parser.add_argument(
+        "--rss-only", action="store_true", help="Only scrape RSS sources (more reliable)"
+    )
     parser.add_argument("--html-only", action="store_true", help="Only scrape HTML sources")
     parser.add_argument("--dry-run", action="store_true", help="Skip upload to Contextual AI")
     parser.add_argument("--max-articles", type=int, default=50, help="Max articles per source")
-    parser.add_argument("--force-rescrape", action="store_true", help="Ignore previously scraped articles and re-scrape everything")
-    parser.add_argument("--lookback-days", type=int, help="Only include articles published within this many days (default: 60)")
+    parser.add_argument(
+        "--force-rescrape",
+        action="store_true",
+        help="Ignore previously scraped articles and re-scrape everything",
+    )
+    parser.add_argument(
+        "--lookback-days",
+        type=int,
+        help="Only include articles published within this many days (default: 60)",
+    )
     parser.add_argument("--output-dir", type=str, help="Override output directory")
 
     args = parser.parse_args()
@@ -82,9 +92,15 @@ Examples:
     metrics = ScrapeMetrics()
 
     # Load persistent URL registry (survives across CI runs)
-    registry_path = Path(args.output_dir).parent / "scraped_urls.json" if args.output_dir else Path("data/scraped_urls.json")
+    registry_path = (
+        Path(args.output_dir).parent / "scraped_urls.json"
+        if args.output_dir
+        else Path("data/scraped_urls.json")
+    )
     url_registry = storage.load_url_registry(registry_path)
-    print(f"📋 Loaded URL registry: {sum(len(v) for v in url_registry.values())} total seen URLs across {len(url_registry)} sources")
+    print(
+        f"📋 Loaded URL registry: {sum(len(v) for v in url_registry.values())} total seen URLs across {len(url_registry)} sources"
+    )
 
     # Initialize uploader (if not dry run)
     uploader = None

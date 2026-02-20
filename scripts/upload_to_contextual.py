@@ -134,9 +134,9 @@ def main():
     print(f"Successful: {results['successful']}")
     print(f"Failed: {results['failed']}")
 
-    if results['errors']:
+    if results["errors"]:
         print("\nErrors:")
-        for error in results['errors'][:10]:
+        for error in results["errors"][:10]:
             if isinstance(error, dict):
                 print(f"  - {error.get('article_id', 'Unknown')}: {error.get('url', 'N/A')}")
             else:
