@@ -1,0 +1,37 @@
+{
+  "last_updated": "2026-02-20T21:45:00.440942+00:00",
+  "source": "msr_blog",
+  "articles": {
+    "msr_blog_31635a7ab479": {
+      "url": "https://www.microsoft.com/en-us/research/blog/media-authenticity-methods-in-practice-capabilities-limitations-and-directions/",
+      "title": "Media Authenticity Methods in Practice: Capabilities, Limitations, and Directions",
+      "published_date": "2026-02-19T16:00:51+00:00",
+      "scraped_at": "2026-02-20T21:45:00.422843+00:00"
+    },
+    "msr_blog_1bfca55921cf": {
+      "url": "https://www.microsoft.com/en-us/research/blog/project-silicas-advances-in-glass-storage-technology/",
+      "title": "Project Silica’s advances in glass storage technology",
+      "published_date": "2026-02-18T16:11:45+00:00",
+      "scraped_at": "2026-02-20T21:45:00.428457+00:00"
+    },
+    "msr_blog_d204da77546c": {
+      "url": "https://www.microsoft.com/en-us/research/blog/rethinking-imitation-learning-with-predictive-inverse-dynamics-models/",
+      "title": "Rethinking imitation learning with Predictive Inverse Dynamics Models",
+      "published_date": "2026-02-05T17:00:00+00:00",
+      "scraped_at": "2026-02-20T21:45:00.431257+00:00"
+    },
+    "msr_blog_f93e244a6f53": {
+      "url": "https://www.microsoft.com/en-us/research/blog/paza-introducing-automatic-speech-recognition-benchmarks-and-models-for-low-resource-languages/",
+      "title": "Paza: Introducing automatic speech recognition benchmarks and models for low resource languages",
+      "published_date": "2026-02-05T05:07:55+00:00",
+      "scraped_at": "2026-02-20T21:45:00.436134+00:00"
+    },
+    "msr_blog_23fef0003888": {
+      "url": "https://www.microsoft.com/en-us/research/blog/unirg-scaling-medical-imaging-report-generation-with-multimodal-reinforcement-learning/",
+      "title": "UniRG: Scaling medical imaging report generation with multimodal reinforcement learning",
+      "published_date": "2026-01-27T17:00:00+00:00",
+      "scraped_at": "2026-02-20T21:45:00.438821+00:00"
+    }
+  },
+  "total_articles": 5
+}

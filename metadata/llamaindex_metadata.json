@@ -1,0 +1,37 @@
+{
+  "last_updated": "2026-02-20T21:45:14.612053+00:00",
+  "source": "llamaindex",
+  "articles": {
+    "llamaindex_549c9f0a8d62": {
+      "url": "https://www.llamaindex.ai/llamacloud",
+      "title": "Your document automation platform for unstructured data",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:45:06.350740+00:00"
+    },
+    "llamaindex_c04a820acaf7": {
+      "url": "https://www.llamaindex.ai/llamaparse",
+      "title": "Transform messy documents into AI-ready data at scale",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:45:08.375179+00:00"
+    },
+    "llamaindex_f108363d226f": {
+      "url": "https://www.llamaindex.ai/llamaextract",
+      "title": "Extract structured insights — with full confidence",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:45:10.543696+00:00"
+    },
+    "llamaindex_79abf4ce43a5": {
+      "url": "https://www.llamaindex.ai/llamacloud-index",
+      "title": "Power agents with searchable knowledge bases",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:45:12.551305+00:00"
+    },
+    "llamaindex_05ee7b762724": {
+      "url": "https://www.llamaindex.ai/workflows",
+      "title": "The orchestrator for your multi-step AI workflow",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:45:14.610454+00:00"
+    }
+  },
+  "total_articles": 5
+}

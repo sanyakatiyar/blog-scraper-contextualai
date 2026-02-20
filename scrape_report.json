@@ -1,0 +1,38 @@
+{
+  "start_time": "2026-02-20T21:43:59.247962+00:00",
+  "end_time": "2026-02-20T21:46:47.325876+00:00",
+  "duration_seconds": 168.077914,
+  "total_scraped": 71,
+  "total_uploaded": 0,
+  "total_errors": 0,
+  "total_skipped": 5,
+  "by_source": {
+    "scraped": {
+      "langchain": 5,
+      "huggingface": 5,
+      "anthropic_research": 5,
+      "anthropic_news": 5,
+      "anthropic_engineering": 5,
+      "aws_ml": 5,
+      "msr_blog": 5,
+      "bair_blog": 5,
+      "hackernews": 3,
+      "llamaindex": 5,
+      "pinecone": 5,
+      "cohere": 5,
+      "databricks_blog": 3,
+      "mistral_news": 3,
+      "arize_blog": 2,
+      "langfuse_blog": 5
+    },
+    "uploaded": {},
+    "skipped": {
+      "openai_news": 1,
+      "the_gradient": 1,
+      "weaviate": 1,
+      "meta_ai_blog": 1,
+      "ragas_blog": 1
+    }
+  },
+  "errors": []
+}

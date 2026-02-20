@@ -21,9 +21,9 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from config.settings import settings
-from src.scrapers import get_scraper, SCRAPER_REGISTRY
-from src.storage import LocalStorage, ContextualUploader
-from src.utils import setup_logging, get_logger, ScrapeMetrics
+from src.scrapers import get_scraper
+from src.storage import ContextualUploader, LocalStorage
+from src.utils import ScrapeMetrics, get_logger, setup_logging
 
 
 def load_sources_config() -> dict:
@@ -34,7 +34,7 @@ def load_sources_config() -> dict:
         # Try relative path
         config_path = project_root / "config" / "sources.yaml"
 
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         raw = yaml.safe_load(f)
 
     # Merge rss_sources and html_sources into a flat "sources" dict
@@ -53,7 +53,7 @@ def get_enabled_sources(config: dict) -> list[tuple[str, dict]]:
     for source_id, source_config in config.get("sources", {}).items():
         if source_config.get("enabled", True):
             sources.append((source_id, source_config))
-    
+
     # Sort by priority (lower = higher priority)
     sources.sort(key=lambda x: x[1].get("priority", 99))
     return sources
@@ -69,25 +69,25 @@ def run_scraper_for_source(
 ) -> list[dict]:
     """Run scraper for a single source."""
     logger = get_logger("runner")
-    
+
     logger.info(f"Starting scrape for: {source_config.get('name', source_id)}")
-    
+
     # Get the scraper class
     scraper_class_name = source_config.get("scraper_class", "GenericScraper")
-    
+
     try:
         scraper_class = get_scraper(scraper_class_name)
     except ValueError as e:
         logger.error(f"Unknown scraper class: {scraper_class_name}")
         metrics.record_error(source_id, "", str(e))
         return []
-    
+
     # Instantiate scraper with config
     scraper_kwargs = {
         "max_articles": source_config.get("max_articles", settings.max_articles_per_source),
         "rate_limit_seconds": source_config.get("rate_limit_seconds", settings.scrape_delay_seconds),
     }
-    
+
     # For generic scraper, pass additional config
     if scraper_class_name == "GenericScraper":
         scraper = scraper_class(
@@ -98,14 +98,14 @@ def run_scraper_for_source(
         )
     else:
         scraper = scraper_class(**scraper_kwargs)
-    
+
     # Get already-scraped URLs (for deduplication)
     if not force_rescrape:
         existing_urls = storage.get_scraped_urls(source_id)
         logger.info(f"Found {len(existing_urls)} existing URLs for {source_id}")
     else:
         existing_urls = set()
-    
+
     # Run the scraper
     try:
         articles = scraper.scrape_all()
@@ -113,7 +113,7 @@ def run_scraper_for_source(
         logger.error(f"Scraper failed for {source_id}: {str(e)}")
         metrics.record_error(source_id, "", str(e))
         return []
-    
+
     # Filter out duplicates
     new_articles = []
     for article in articles:
@@ -121,24 +121,24 @@ def run_scraper_for_source(
             new_articles.append(article)
         else:
             metrics.record_skipped(source_id)
-    
+
     logger.info(f"Scraped {len(articles)} articles, {len(new_articles)} are new")
     metrics.record_scraped(source_id, len(new_articles))
-    
+
     # Save to local storage
     if new_articles:
         storage.save_batch(new_articles, source_id)
         logger.info(f"Saved {len(new_articles)} articles to local storage")
-    
+
     # Upload to Contextual AI
     if uploader and new_articles and not settings.skip_upload:
         upload_results = uploader.upload_batch(new_articles)
         metrics.record_uploaded(source_id, upload_results["successful"])
-        
+
         for error in upload_results.get("errors", []):
             if isinstance(error, dict):
                 metrics.record_error(source_id, error.get("url", ""), "Upload failed")
-    
+
     return new_articles
 
 
@@ -148,7 +148,7 @@ def main():
         description="Blog scraping pipeline for Context Crew",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    
+
     parser.add_argument(
         "--all",
         action="store_true",
@@ -184,20 +184,20 @@ def main():
         type=int,
         help="Override max articles per source",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Setup logging
     setup_logging()
     logger = get_logger("main")
-    
+
     # Load config
     try:
         config = load_sources_config()
     except FileNotFoundError:
         logger.error("Could not find sources.yaml config file")
         sys.exit(1)
-    
+
     # List sources mode
     if args.list_sources:
         print("\nAvailable Sources:")
@@ -209,33 +209,33 @@ def main():
             print(f"  [{enabled}] {source_id:15} - {name:25} ({scraper})")
         print()
         return
-    
+
     # Validate arguments
     if not args.all and not args.source:
         parser.print_help()
         print("\nError: Must specify --all or --source")
         sys.exit(1)
-    
+
     # Apply overrides
     if args.dry_run:
         settings.skip_upload = True
         logger.info("DRY RUN mode - uploads will be skipped")
-    
+
     if args.max_articles:
         settings.max_articles_per_source = args.max_articles
-    
+
     # Initialize storage
     output_dir = Path(args.output_dir) if args.output_dir else None
     storage = LocalStorage(base_dir=output_dir)
-    
+
     # Initialize uploader (if not dry run)
     uploader = None
     if not settings.skip_upload and settings.contextual_api_key:
         uploader = ContextualUploader()
-    
+
     # Initialize metrics
     metrics = ScrapeMetrics()
-    
+
     # Determine which sources to scrape
     if args.source:
         source_config = config.get("sources", {}).get(args.source)
@@ -245,9 +245,9 @@ def main():
         sources_to_scrape = [(args.source, source_config)]
     else:
         sources_to_scrape = get_enabled_sources(config)
-    
+
     logger.info(f"Will scrape {len(sources_to_scrape)} sources")
-    
+
     # Run scrapers
     all_articles = []
     for source_id, source_config in sources_to_scrape:
@@ -264,16 +264,16 @@ def main():
         except Exception as e:
             logger.error(f"Error processing {source_id}: {str(e)}")
             metrics.record_error(source_id, "", str(e))
-    
+
     # Print summary
     print(metrics.summary())
-    
+
     # Save metrics report
     metrics_path = storage.base_dir / "scrape_report.json"
     with open(metrics_path, "w") as f:
         json.dump(metrics.to_dict(), f, indent=2)
     logger.info(f"Saved metrics report to {metrics_path}")
-    
+
     # Exit with error code if there were failures
     if metrics.to_dict()["total_errors"] > 0:
         sys.exit(1)

@@ -18,15 +18,15 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from config.settings import settings
-from src.storage import LocalStorage, ContextualUploader
-from src.utils import setup_logging, get_logger
+from src.storage import ContextualUploader, LocalStorage
+from src.utils import get_logger, setup_logging
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Upload scraped articles to Contextual AI",
     )
-    
+
     parser.add_argument(
         "--source",
         type=str,
@@ -47,13 +47,13 @@ def main():
         type=str,
         help="Override local data directory",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Setup
     setup_logging()
     logger = get_logger("upload")
-    
+
     # Check for API key
     if not settings.contextual_api_key:
         logger.error("CONTEXTUAL_API_KEY environment variable not set")
@@ -61,21 +61,21 @@ def main():
         print("  export CONTEXTUAL_API_KEY=your_key_here")
         print("\nOr add it to your .env file")
         sys.exit(1)
-    
+
     # Initialize
     data_dir = Path(args.data_dir) if args.data_dir else None
     storage = LocalStorage(base_dir=data_dir)
     uploader = ContextualUploader()
-    
+
     # List documents mode
     if args.list_documents:
         logger.info("Listing documents in datastore...")
         documents = uploader.list_documents()
-        
+
         if not documents:
             print("No documents found (or datastore not configured)")
             return
-        
+
         print(f"\nDocuments in datastore ({len(documents)} total):")
         print("-" * 60)
         for doc in documents:
@@ -85,18 +85,18 @@ def main():
             print(f"  [{status:12}] {doc_id[:20]}... - {name}")
         print()
         return
-    
+
     # Check status mode
     if args.check_status:
         logger.info("Checking document status...")
         # This would need stored document IDs - for now just list
         documents = uploader.list_documents()
-        
+
         status_counts = {}
         for doc in documents:
             status = doc.get("status", "unknown")
             status_counts[status] = status_counts.get(status, 0) + 1
-        
+
         print("\nDocument Status Summary:")
         print("-" * 30)
         for status, count in sorted(status_counts.items()):
@@ -104,28 +104,28 @@ def main():
         print(f"  Total: {len(documents)}")
         print()
         return
-    
+
     # Upload mode
     logger.info("Loading articles for upload...")
     articles = storage.export_for_upload(source=args.source)
-    
+
     if not articles:
         print("No articles found to upload")
         print(f"Data directory: {storage.base_dir}")
         return
-    
+
     logger.info(f"Found {len(articles)} articles to upload")
-    
+
     # Confirm upload
     if len(articles) > 10:
         response = input(f"Upload {len(articles)} articles? [y/N] ")
         if response.lower() != "y":
             print("Cancelled")
             return
-    
+
     # Upload
     results = uploader.upload_batch(articles)
-    
+
     # Print results
     print("\n" + "=" * 50)
     print("UPLOAD SUMMARY")
@@ -133,7 +133,7 @@ def main():
     print(f"Total: {results['total']}")
     print(f"Successful: {results['successful']}")
     print(f"Failed: {results['failed']}")
-    
+
     if results['errors']:
         print("\nErrors:")
         for error in results['errors'][:10]:
@@ -141,7 +141,7 @@ def main():
                 print(f"  - {error.get('article_id', 'Unknown')}: {error.get('url', 'N/A')}")
             else:
                 print(f"  - {error}")
-    
+
     # Save results
     results_path = storage.base_dir / "upload_results.json"
     with open(results_path, "w") as f:

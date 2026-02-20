@@ -13,19 +13,18 @@ RSS feeds are:
 
 import hashlib
 import re
-from datetime import datetime, timedelta, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from urllib.parse import urlparse
 
-from dateutil import parser as date_parser
 import feedparser
 import requests
 import yaml
 from bs4 import BeautifulSoup
+from dateutil import parser as date_parser
 
 from config.settings import settings
 from src.utils import get_logger, rate_limiter
-
 
 # =============================================================================
 # Load sources and filtering config from YAML
@@ -40,7 +39,7 @@ def load_sources_config() -> tuple[dict, dict, dict, dict]:
         (rss_feeds, html_sources, filtering, global_config)
     """
     config_path = settings.sources_config_path
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         raw = yaml.safe_load(f)
 
     rss_feeds = {}
@@ -96,7 +95,7 @@ class UnifiedScraper:
         )
         self.logger = get_logger("scraper.unified")
         self.session = self._create_session()
-    
+
     def _create_session(self) -> requests.Session:
         """Create a configured requests session."""
         session = requests.Session()
@@ -110,7 +109,7 @@ class UnifiedScraper:
             "Accept-Language": "en-US,en;q=0.5",
         })
         return session
-    
+
     def _passes_filters(self, article: dict[str, Any]) -> bool:
         """Check if an article passes the date, keyword, and word-count filters."""
         # Date filter: skip articles older than lookback_days
@@ -118,8 +117,8 @@ class UnifiedScraper:
             try:
                 pub = date_parser.parse(article["published_date"])
                 if pub.tzinfo is None:
-                    pub = pub.replace(tzinfo=timezone.utc)
-                cutoff = datetime.now(timezone.utc) - timedelta(days=self.lookback_days)
+                    pub = pub.replace(tzinfo=UTC)
+                cutoff = datetime.now(UTC) - timedelta(days=self.lookback_days)
                 if pub < cutoff:
                     self.logger.debug(
                         f"Filtered out (too old, {pub.date()}): {article.get('title', '')}"
@@ -151,10 +150,7 @@ class UnifiedScraper:
 
     def _is_excluded_url(self, url: str) -> bool:
         """Check if a URL matches any exclude pattern from the config."""
-        for pattern in FILTERING.get("exclude_patterns", []):
-            if pattern in url:
-                return True
-        return False
+        return any(pattern in url for pattern in FILTERING.get("exclude_patterns", []))
 
     def scrape_source(
         self, source_id: str, seen_urls: set[str] | None = None
@@ -173,7 +169,7 @@ class UnifiedScraper:
         else:
             self.logger.error(f"Unknown source: {source_id}")
             return []
-    
+
     def scrape_all(
         self,
         sources: list[str] | None = None,
@@ -198,13 +194,13 @@ class UnifiedScraper:
             articles = self.scrape_source(source_id, seen_urls=seen_urls)
             results[source_id] = articles
             self.logger.info(f"Scraped {len(articles)} articles from {source_id}")
-        
+
         return results
-    
+
     # =========================================================================
     # RSS Scraping (Preferred)
     # =========================================================================
-    
+
     def _scrape_rss(
         self, source_id: str, config: dict, seen_urls: set[str] | None = None
     ) -> list[dict[str, Any]]:
@@ -245,29 +241,29 @@ class UnifiedScraper:
                     articles.append(article)
 
             return articles
-            
+
         except Exception as e:
             self.logger.error(f"Failed to fetch RSS feed: {e}")
             return []
-    
+
     def _rss_entry_to_article(
         self,
         entry: dict,
         source_id: str,
         config: dict,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Convert an RSS feed entry to our article format."""
         try:
             # Extract URL
             url = entry.get("link", "")
             if not url:
                 return None
-            
+
             # Extract title
             title = entry.get("title", "").strip()
             if not title:
                 return None
-            
+
             # Extract content
             content_text = ""
             if entry.get("content"):
@@ -282,13 +278,13 @@ class UnifiedScraper:
             elif entry.get("description"):
                 soup = BeautifulSoup(entry["description"], "lxml")
                 content_text = soup.get_text(separator="\n", strip=True)
-            
+
             # If content is too short, try fetching the full article
             if len(content_text) < 200:
                 full_content = self._fetch_full_article(url)
                 if full_content and len(full_content) > len(content_text):
                     content_text = full_content
-            
+
             # Extract date
             published_date = None
             for date_field in ["published", "updated", "created"]:
@@ -298,14 +294,14 @@ class UnifiedScraper:
                         break
                     except (ValueError, TypeError):
                         continue
-            
+
             # Extract author
             author = None
             if entry.get("author"):
                 author = entry["author"]
             elif entry.get("authors"):
                 author = ", ".join(a.get("name", "") for a in entry["authors"][:3])
-            
+
             # Extract tags from RSS
             tags = list(config.get("default_tags", []))
             if entry.get("tags"):
@@ -314,7 +310,7 @@ class UnifiedScraper:
                         tag_text = tag["term"].lower().strip()
                         if tag_text not in tags:
                             tags.append(tag_text)
-            
+
             return self._create_article_dict(
                 source_id=source_id,
                 source_name=config["name"],
@@ -325,17 +321,17 @@ class UnifiedScraper:
                 published_date=published_date,
                 tags=tags,
             )
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to parse RSS entry: {e}")
             return None
-    
-    def _fetch_full_article(self, url: str) -> Optional[str]:
+
+    def _fetch_full_article(self, url: str) -> str | None:
         """Fetch full article content when RSS only has summary."""
         try:
             domain = urlparse(url).netloc
             rate_limiter.wait(domain)
-            
+
             response = self.session.get(url, timeout=self.request_timeout)
             response.raise_for_status()
 
@@ -358,11 +354,11 @@ class UnifiedScraper:
         except Exception as e:
             self.logger.debug(f"Could not fetch full article: {e}")
             return None
-    
+
     # =========================================================================
     # HTML Scraping (Fallback)
     # =========================================================================
-    
+
     def _scrape_html(
         self, source_id: str, config: dict, seen_urls: set[str] | None = None
     ) -> list[dict[str, Any]]:
@@ -398,22 +394,22 @@ class UnifiedScraper:
                 articles.append(article)
 
         return articles
-    
+
     def _discover_article_urls(self, blog_url: str, base_url: str) -> list[str]:
         """Discover article URLs from a blog listing page."""
         try:
             domain = urlparse(blog_url).netloc
             rate_limiter.wait(domain)
-            
+
             response = self.session.get(blog_url, timeout=self.request_timeout)
             response.raise_for_status()
-            
+
             soup = BeautifulSoup(response.content, "lxml")
             urls = []
-            
+
             for link in soup.find_all("a", href=True):
                 href = link["href"]
-                
+
                 # Convert to absolute URL
                 if href.startswith("/"):
                     full_url = f"{base_url}{href}"
@@ -421,7 +417,7 @@ class UnifiedScraper:
                     full_url = href
                 else:
                     continue
-                
+
                 # Skip non-article URLs (built-in + config exclude_patterns)
                 skip_patterns = [
                     r"^/?$",
@@ -436,39 +432,37 @@ class UnifiedScraper:
                 ]
                 for ep in FILTERING.get("exclude_patterns", []):
                     skip_patterns.append(re.escape(ep))
-                
+
                 if any(re.search(p, href, re.I) for p in skip_patterns):
                     continue
-                
+
                 # Check if URL looks like an article (has a path segment)
                 path = urlparse(full_url).path
-                if path and path != "/" and full_url not in urls:
-                    # Must be on same domain
-                    if urlparse(full_url).netloc == urlparse(base_url).netloc:
-                        urls.append(full_url)
-            
+                if path and path != "/" and full_url not in urls and urlparse(full_url).netloc == urlparse(base_url).netloc:
+                    urls.append(full_url)
+
             return urls
-            
+
         except Exception as e:
             self.logger.error(f"Failed to discover URLs: {e}")
             return []
-    
+
     def _scrape_html_article(
         self,
         url: str,
         source_id: str,
         config: dict,
-    ) -> Optional[dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Scrape a single article from HTML."""
         try:
             domain = urlparse(url).netloc
             rate_limiter.wait(domain)
-            
+
             response = self.session.get(url, timeout=self.request_timeout)
             response.raise_for_status()
-            
+
             soup = BeautifulSoup(response.content, "lxml")
-            
+
             # Extract title
             title = None
             for selector in ["h1", 'meta[property="og:title"]']:
@@ -482,10 +476,10 @@ class UnifiedScraper:
                         title = elem.get_text(strip=True)
                 if title:
                     break
-            
+
             if not title:
                 return None
-            
+
             # Extract content
             content_text = ""
             for selector in ["article", "main", ".post-content", ".content", ".entry-content"]:
@@ -496,13 +490,13 @@ class UnifiedScraper:
                     content_text = elem.get_text(separator="\n", strip=True)
                     if len(content_text) > 200:
                         break
-            
+
             if len(content_text) < 200:
                 return None
-            
+
             # Extract date
             published_date = None
-            
+
             for selector in ["time", 'meta[property="article:published_time"]', '[class*="date"]']:
                 elem = soup.select_one(selector)
                 if elem:
@@ -512,7 +506,7 @@ class UnifiedScraper:
                         break
                     except (ValueError, TypeError):
                         continue
-            
+
             # Extract author
             author = None
             for selector in ['[class*="author"]', '[rel="author"]']:
@@ -521,7 +515,7 @@ class UnifiedScraper:
                     author = elem.get_text(strip=True)
                     if author:
                         break
-            
+
             return self._create_article_dict(
                 source_id=source_id,
                 source_name=config["name"],
@@ -532,15 +526,15 @@ class UnifiedScraper:
                 published_date=published_date,
                 tags=list(config.get("default_tags", [])),
             )
-            
+
         except Exception as e:
             self.logger.warning(f"Failed to scrape article {url}: {e}")
             return None
-    
+
     # =========================================================================
     # Helpers
     # =========================================================================
-    
+
     def _create_article_dict(
         self,
         source_id: str,
@@ -553,18 +547,18 @@ class UnifiedScraper:
         tags: list[str],
     ) -> dict[str, Any]:
         """Create a standardized article dictionary."""
-        now = datetime.now(timezone.utc)
-        
+        now = datetime.now(UTC)
+
         # Generate unique ID
         url_hash = hashlib.md5(url.encode()).hexdigest()[:12]
         article_id = f"{source_id}_{url_hash}"
-        
+
         # Calculate word count
         word_count = len(content_text.split())
-        
+
         # Generate summary
         summary = content_text[:500].rsplit(" ", 1)[0] + "..." if len(content_text) > 500 else content_text
-        
+
         return {
             "id": article_id,
             "source": source_id,
@@ -592,21 +586,21 @@ class UnifiedScraper:
 def get_all_sources() -> dict[str, dict]:
     """Get all available sources (RSS + HTML)."""
     sources = {}
-    
+
     for source_id, config in RSS_FEEDS.items():
         sources[source_id] = {
             **config,
             "method": "rss",
             "enabled": True,
         }
-    
+
     for source_id, config in HTML_ONLY_SOURCES.items():
         sources[source_id] = {
             **config,
             "method": "html",
             "enabled": True,
         }
-    
+
     return sources
 
 
@@ -615,17 +609,17 @@ def list_sources() -> None:
     print("\n" + "=" * 70)
     print("AVAILABLE SOURCES")
     print("=" * 70)
-    
+
     print("\n📡 RSS Sources (Preferred - More Reliable):")
     print("-" * 50)
     for source_id, config in RSS_FEEDS.items():
         print(f"  ✅ {source_id:25} - {config['name']}")
-    
+
     print("\n🌐 HTML Sources (Fallback - May Break):")
     print("-" * 50)
     for source_id, config in HTML_ONLY_SOURCES.items():
         print(f"  ⚠️  {source_id:25} - {config['name']}")
-    
+
     print("\n" + "=" * 70)
 
 

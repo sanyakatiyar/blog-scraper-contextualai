@@ -20,9 +20,9 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from config.settings import settings
-from src.scrapers import UnifiedScraper, RSS_FEEDS, HTML_ONLY_SOURCES, list_sources
-from src.storage import LocalStorage, ContextualUploader
-from src.utils import setup_logging, get_logger, ScrapeMetrics
+from src.scrapers import HTML_ONLY_SOURCES, RSS_FEEDS, UnifiedScraper, list_sources
+from src.storage import ContextualUploader, LocalStorage
+from src.utils import ScrapeMetrics, setup_logging
 
 
 def main():
@@ -37,7 +37,7 @@ Examples:
   python scripts/run_unified.py --dry-run           # Test without upload
         """,
     )
-    
+
     parser.add_argument("--list", action="store_true", help="List all available sources")
     parser.add_argument("--source", type=str, help="Scrape a specific source")
     parser.add_argument("--rss-only", action="store_true", help="Only scrape RSS sources (more reliable)")
@@ -47,18 +47,17 @@ Examples:
     parser.add_argument("--force-rescrape", action="store_true", help="Ignore previously scraped articles and re-scrape everything")
     parser.add_argument("--lookback-days", type=int, help="Only include articles published within this many days (default: 60)")
     parser.add_argument("--output-dir", type=str, help="Override output directory")
-    
+
     args = parser.parse_args()
-    
+
     # Setup logging
     setup_logging()
-    logger = get_logger("main")
-    
+
     # List sources mode
     if args.list:
         list_sources()
         return
-    
+
     # Determine which sources to scrape
     if args.source:
         all_sources = list(RSS_FEEDS.keys()) + list(HTML_ONLY_SOURCES.keys())
@@ -76,7 +75,7 @@ Examples:
     else:
         sources = list(RSS_FEEDS.keys()) + list(HTML_ONLY_SOURCES.keys())
         print(f"📊 Scraping all {len(sources)} sources")
-    
+
     # Initialize components
     scraper = UnifiedScraper(max_articles=args.max_articles, lookback_days=args.lookback_days)
     storage = LocalStorage(base_dir=Path(args.output_dir) if args.output_dir else None)
@@ -137,16 +136,16 @@ Examples:
 
                 all_articles.extend(articles)
             else:
-                print(f"  ⚠️  No new articles found")
+                print("  ⚠️  No new articles found")
                 metrics.record_skipped(source_id, 1)
-                
+
         except Exception as e:
             print(f"  ❌ Error: {e}")
             metrics.record_error(source_id, "", str(e))
-    
+
     # Print summary
     print("\n" + metrics.summary())
-    
+
     # Save persistent URL registry
     if not args.dry_run:
         storage.save_url_registry(registry_path, url_registry)
@@ -157,10 +156,10 @@ Examples:
     with open(report_path, "w") as f:
         json.dump(metrics.to_dict(), f, indent=2)
     print(f"\n📄 Report saved to: {report_path}")
-    
+
     # Final stats
     print(f"\n🎉 Done! Scraped {len(all_articles)} total articles")
-    
+
     return 0 if metrics.to_dict()["total_errors"] == 0 else 1
 
 

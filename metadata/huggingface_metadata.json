@@ -1,0 +1,37 @@
+{
+  "last_updated": "2026-02-20T21:44:08.476416+00:00",
+  "source": "huggingface",
+  "articles": {
+    "huggingface_e4d4cd0957d7": {
+      "url": "https://huggingface.co/blog/ggml-joins-hf",
+      "title": "GGML and llama.cpp join HF to ensure the long-term progress of Local AI",
+      "published_date": "2026-02-20T00:00:00+00:00",
+      "scraped_at": "2026-02-20T21:44:00.685467+00:00"
+    },
+    "huggingface_8464cde736df": {
+      "url": "https://huggingface.co/blog/unsloth-jobs",
+      "title": "Train AI models with Unsloth and Hugging Face Jobs for FREE",
+      "published_date": "2026-02-20T00:00:00+00:00",
+      "scraped_at": "2026-02-20T21:44:02.508814+00:00"
+    },
+    "huggingface_570a98c61af8": {
+      "url": "https://huggingface.co/blog/nvidia/nemotron-personas-japan-nttdata-ja",
+      "title": "「データ不足」の壁を越える：合成ペルソナが日本のAI開発を加速",
+      "published_date": "2026-02-19T15:32:38+00:00",
+      "scraped_at": "2026-02-20T21:44:04.474314+00:00"
+    },
+    "huggingface_7df6e000ee06": {
+      "url": "https://huggingface.co/blog/ibm-research/itbenchandmast",
+      "title": "IBM and UC Berkeley Diagnose Why Enterprise Agents Fail Using IT-Bench and MAST",
+      "published_date": "2026-02-18T16:15:45+00:00",
+      "scraped_at": "2026-02-20T21:44:06.431744+00:00"
+    },
+    "huggingface_22f6c738ff6c": {
+      "url": "https://huggingface.co/blog/gradio-html-one-shot-apps",
+      "title": "One-Shot Any Web App with Gradio's gr.HTML",
+      "published_date": "2026-02-18T00:00:00+00:00",
+      "scraped_at": "2026-02-20T21:44:08.473397+00:00"
+    }
+  },
+  "total_articles": 5
+}

@@ -1,0 +1,25 @@
+{
+  "last_updated": "2026-02-20T21:46:16.971897+00:00",
+  "source": "mistral_news",
+  "articles": {
+    "mistral_news_165060417da9": {
+      "url": "https://mistral.ai/news/voxtral-transcribe-2",
+      "title": "Voxtral transcribesat the speed of sound.",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:46:08.295281+00:00"
+    },
+    "mistral_news_799df3d7d00f": {
+      "url": "https://mistral.ai/customers",
+      "title": "Customer stories | Mistral AI",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:46:10.786817+00:00"
+    },
+    "mistral_news_111c07633c06": {
+      "url": "https://mistral.ai/solutions",
+      "title": "Solutions - for any use case | Mistral AI",
+      "published_date": null,
+      "scraped_at": "2026-02-20T21:46:13.427350+00:00"
+    }
+  },
+  "total_articles": 3
+}

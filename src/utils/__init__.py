@@ -1,6 +1,6 @@
 """Utility modules for the blog scraper."""
 
-from .logger import get_logger, setup_logging, ScrapeMetrics
+from .logger import ScrapeMetrics, get_logger, setup_logging
 from .rate_limiter import RateLimiter, RetryHandler, rate_limiter
 
 __all__ = [

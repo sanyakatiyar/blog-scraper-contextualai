@@ -4,7 +4,6 @@ Uses Pydantic settings for environment variable management.
 """
 
 from pathlib import Path
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,7 +24,7 @@ class Settings(BaseSettings):
         default="",
         description="Contextual AI API key for datastore access",
     )
-    contextual_datastore_id: Optional[str] = Field(
+    contextual_datastore_id: str | None = Field(
         default=None,
         description="Existing datastore ID to use",
     )
