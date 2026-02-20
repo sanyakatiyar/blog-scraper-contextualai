@@ -139,6 +139,19 @@ rss_sources:
       - evaluation
       - policy
 
+  n8n_blog:
+    name: "n8n Blog"
+    rss_url: "https://blog.n8n.io/rss/"
+    base_url: "https://blog.n8n.io"
+    enabled: true
+    priority: 2
+    default_tags:
+      - automation
+      - agents
+      - tools
+      - workflow
+      - integration
+
   hackernews:
     name: "Hacker News"
     rss_url: "https://news.ycombinator.com/rss"
@@ -284,6 +297,83 @@ html_sources:
       - benchmarks
       - metrics
 
+  dbreunig:
+    name: "Drew Breunig"
+    base_url: "https://www.dbreunig.com"
+    blog_path: "/"
+    enabled: true
+    priority: 2
+    default_tags:
+      - llm
+      - agents
+      - embeddings
+      - data
+      - analysis
+
+  chroma_updates:
+    name: "Chroma Updates"
+    base_url: "https://www.trychroma.com"
+    blog_path: "/updates"
+    enabled: true
+    priority: 2
+    default_tags:
+      - vector-database
+      - embeddings
+      - rag
+      - retrieval
+      - similarity-search
+
+  chroma_research:
+    name: "Chroma Research"
+    base_url: "https://www.trychroma.com"
+    blog_path: "/research"
+    enabled: true
+    priority: 2
+    default_tags:
+      - vector-database
+      - embeddings
+      - rag
+      - retrieval
+      - research
+
+  manus_blog:
+    name: "Manus Blog"
+    base_url: "https://manus.im"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - agents
+      - llm
+      - automation
+      - tools
+
+  crewai_blog:
+    name: "CrewAI Blog"
+    base_url: "https://www.crewai.com"
+    blog_path: "/blog"
+    enabled: true
+    priority: 2
+    default_tags:
+      - agents
+      - multi-agent
+      - llm
+      - automation
+      - crewai
+
+  contextual_ai_blog:
+    name: "Contextual AI Blog"
+    base_url: "https://contextual.ai"
+    blog_path: "/blog"
+    enabled: true
+    priority: 1
+    default_tags:
+      - rag
+      - retrieval
+      - agents
+      - llm
+      - context-engineering
+
 # =============================================================================
 # Global Settings
 # =============================================================================
@@ -332,6 +422,35 @@ filtering:
     - co-reference resolution
     - langchain
     - llamaindex
+    - context rot
+    - agent architecture
+    - scaffolding
+    - compaction
+    - sub-agents
+    - reduce context
+    - offload context
+    - agent memory
+    - context poisoning
+    - context distraction
+    - context confusion
+    - context clash
+    - contextual ai
+    - contextual retrieval
+    - agentic
+    - tool use
+    - hallucination
+    - chunking
+    - MCP
+    - hybrid search
+    - grounding
+    - long context
+    - reranker
+    - reranking
+    - orchestration
+    - tool calling
+    - function calling
+    - tool selection
+    - tool integration
   
   # Skip URLs containing these patterns
   exclude_patterns:
