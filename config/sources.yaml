@@ -385,6 +385,7 @@ global:
   retry_delay_seconds: 5
   request_timeout_seconds: 30
   max_articles_per_source: 20
+  lookback_days: 120
 
 # =============================================================================
 # Content Filtering
@@ -401,15 +402,12 @@ filtering:
     - retrieval
     - llm
     - language models
-    - agent
     - context engineering
     - context windows
     - embedding
     - vector search
     - semantic search
-    - generation
     - prompt engineering
-    - prompt
     - fine-tuning
     - transformer
     - attention mechanisms
@@ -424,8 +422,8 @@ filtering:
     - llamaindex
     - context rot
     - agent architecture
-    - scaffolding
-    - compaction
+    - agent scaffolding
+    - context compaction
     - sub-agents
     - reduce context
     - offload context

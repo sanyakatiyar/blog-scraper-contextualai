@@ -26,6 +26,10 @@ on:
         description: 'Max articles per source'
         required: false
         default: '50'
+      lookback_days:
+        description: 'Only include articles published within this many days'
+        required: false
+        default: '60'
   
 
 env:
@@ -35,6 +39,8 @@ jobs:
   scrape:
     name: Scrape Blog Content
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout repository
@@ -91,6 +97,11 @@ jobs:
           if [ -n "${{ github.event.inputs.max_articles }}" ]; then
             CMD="$CMD --max-articles ${{ github.event.inputs.max_articles }}"
           fi
+
+          # Lookback days
+          if [ -n "${{ github.event.inputs.lookback_days }}" ]; then
+            CMD="$CMD --lookback-days ${{ github.event.inputs.lookback_days }}"
+          fi
           
           echo "Running: $CMD"
           $CMD
@@ -140,6 +151,15 @@ jobs:
             echo "❌ No report generated" >> $GITHUB_STEP_SUMMARY
           fi
       
+      - name: Commit URL registry
+        if: success() && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/scraped_urls.json
+          git diff --staged --quiet || git commit -m "chore: update scraped URL registry [skip ci]"
+          git push
+
       - name: Check for failures
         run: |
           if [ -f "data/raw/scrape_report.json" ]; then

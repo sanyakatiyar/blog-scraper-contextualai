@@ -154,14 +154,44 @@ class LocalStorage:
     def get_scraped_urls(self, source: str | None = None) -> set[str]:
         """Get set of already-scraped URLs to avoid duplicates."""
         urls = set()
-        
+
         articles = self.list_articles(source)
         for article in articles:
             if article.get("url"):
                 urls.add(article["url"])
-        
+
         return urls
-    
+
+    # ------------------------------------------------------------------
+    # Persistent URL registry (survives across CI runs)
+    # ------------------------------------------------------------------
+
+    def load_url_registry(self, registry_path: Path) -> dict[str, set[str]]:
+        """
+        Load the persistent scraped-URL registry from a JSON file.
+
+        Returns a dict mapping source_id -> set of scraped URLs.
+        """
+        if not registry_path.exists():
+            return {}
+        with open(registry_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        return {source: set(urls) for source, urls in raw.items()}
+
+    def save_url_registry(
+        self, registry_path: Path, registry: dict[str, set[str]]
+    ) -> None:
+        """
+        Save the persistent scraped-URL registry to a JSON file.
+
+        Converts sets to sorted lists for stable diffs in git.
+        """
+        registry_path.parent.mkdir(parents=True, exist_ok=True)
+        serializable = {source: sorted(urls) for source, urls in registry.items()}
+        with open(registry_path, "w", encoding="utf-8") as f:
+            json.dump(serializable, f, indent=2, ensure_ascii=False)
+        logger.debug(f"Saved URL registry to {registry_path}")
+
     def clear_source(self, source: str) -> int:
         """
         Clear all articles for a source.

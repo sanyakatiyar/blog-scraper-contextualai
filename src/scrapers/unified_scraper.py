@@ -13,7 +13,7 @@ RSS feeds are:
 
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from urllib.parse import urlparse
 
@@ -77,18 +77,20 @@ RSS_FEEDS, HTML_ONLY_SOURCES, FILTERING, GLOBAL_CONFIG = load_sources_config()
 class UnifiedScraper:
     """
     Unified scraper that uses RSS when available, HTML as fallback.
-    
+
     This is the recommended scraper for the Context Crew project.
     It's simpler, more reliable, and easier to maintain than separate scrapers.
     """
-    
+
     def __init__(
         self,
         max_articles: int | None = None,
         rate_limit_seconds: float | None = None,
+        lookback_days: int | None = None,
     ):
         self.max_articles = max_articles or settings.max_articles_per_source
         self.rate_limit_seconds = rate_limit_seconds or settings.scrape_delay_seconds
+        self.lookback_days = lookback_days or GLOBAL_CONFIG.get("lookback_days", 60)
         self.request_timeout = GLOBAL_CONFIG.get(
             "request_timeout_seconds", settings.request_timeout_seconds
         )
@@ -110,7 +112,22 @@ class UnifiedScraper:
         return session
     
     def _passes_filters(self, article: dict[str, Any]) -> bool:
-        """Check if an article passes the keyword and word-count filters."""
+        """Check if an article passes the date, keyword, and word-count filters."""
+        # Date filter: skip articles older than lookback_days
+        if self.lookback_days and article.get("published_date"):
+            try:
+                pub = date_parser.parse(article["published_date"])
+                if pub.tzinfo is None:
+                    pub = pub.replace(tzinfo=timezone.utc)
+                cutoff = datetime.now(timezone.utc) - timedelta(days=self.lookback_days)
+                if pub < cutoff:
+                    self.logger.debug(
+                        f"Filtered out (too old, {pub.date()}): {article.get('title', '')}"
+                    )
+                    return False
+            except (ValueError, TypeError):
+                pass  # If date can't be parsed, don't filter it out
+
         min_wc = FILTERING.get("min_word_count", 0)
         max_wc = FILTERING.get("max_word_count", float("inf"))
         word_count = article.get("word_count", 0)
