@@ -384,7 +384,7 @@ global:
   max_retries: 3
   retry_delay_seconds: 5
   request_timeout_seconds: 30
-  max_articles_per_source: 50
+  max_articles_per_source: 20
 
 # =============================================================================
 # Content Filtering
