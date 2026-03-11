@@ -84,7 +84,7 @@ python scripts/run_unified.py --rss-only
 
 ```bash
 CONTEXTUAL_API_KEY=your_api_key_here
-CONTEXTUAL_DATASTORE_ID=04546694-8ed1-4bd4-aa64-da058e725c16
+CONTEXTUAL_DATASTORE_ID=your_datastore_id_here
 
 # Optional
 SCRAPE_DELAY_SECONDS=2
