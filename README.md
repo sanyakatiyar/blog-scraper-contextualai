@@ -1,264 +1,133 @@
-# Context Crew - Blog Scraping Pipeline
+# Blog Scraper → Contextual AI Pipeline
 
-A comprehensive blog scraping pipeline for the Context Crew capstone project. This pipeline collects blog posts from reputable sources in the LLM, RAG, agentic systems, and context-engineering domains, storing them in Contextual AI's datastore.
+Automated pipeline that scrapes AI/ML blog posts and ingests them into a [Contextual AI](https://contextual.ai) datastore to power a multi-source research agent.
 
-## 🎯 Target Blog Sources
-
-Based on the project proposal focusing on RAG, context engineering, and agent workflows, we scrape the following sources:
-
-### Primary Sources (High Signal)
-| Source | URL | Focus Area |
-|--------|-----|------------|
-| Anthropic Research | https://www.anthropic.com/research | Claude, safety, interpretability |
-| LlamaIndex Blog | https://www.llamaindex.ai/blog | RAG frameworks, indexing |
-| LangChain Blog | https://blog.langchain.dev | Chains, agents, RAG |
-| Hugging Face Blog | https://huggingface.co/blog | Models, transformers, NLP |
-| OpenAI Blog | https://openai.com/blog | GPT, agents, research |
-| Contextual AI Blog | https://contextual.ai/blog | RAG, grounded generation |
-
-### Secondary Sources (Technical Deep-Dives)
-| Source | URL | Focus Area |
-|--------|-----|------------|
-| Pinecone Blog | https://www.pinecone.io/learn | Vector databases, embeddings |
-| Weaviate Blog | https://weaviate.io/blog | Vector search, RAG |
-| Cohere Blog | https://cohere.com/blog | NLP, embeddings, RAG |
-| AI21 Labs Blog | https://www.ai21.com/blog | Language models |
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 blog-scraper/
-├── .github/
-│   └── workflows/
-│       └── scrape-blogs.yml       # GitHub Actions workflow
-├── src/
-│   ├── __init__.py
-│   ├── scrapers/
-│   │   ├── __init__.py
-│   │   ├── base_scraper.py        # Abstract base class
-│   │   ├── anthropic_scraper.py   # Anthropic blog scraper
-│   │   ├── llamaindex_scraper.py  # LlamaIndex blog scraper
-│   │   ├── langchain_scraper.py   # LangChain blog scraper
-│   │   ├── huggingface_scraper.py # Hugging Face blog scraper
-│   │   └── rss_scraper.py         # Generic RSS scraper
-│   ├── processors/
-│   │   ├── __init__.py
-│   │   ├── content_cleaner.py     # HTML cleaning, text extraction
-│   │   └── metadata_extractor.py  # Extract structured metadata
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   ├── local_storage.py       # JSON file storage
-│   │   └── contextual_uploader.py # Contextual AI datastore upload
-│   └── utils/
-│       ├── __init__.py
-│       ├── rate_limiter.py        # Respect rate limits
-│       └── logger.py              # Structured logging
+├── .github/workflows/
+│   ├── scrape-blogs.yml       # Scraper — runs every 3 days + manual trigger
+│   └── ci.yml                 # Code quality — lint, format, type-check
 ├── config/
-│   ├── sources.yaml               # Blog source configuration
-│   └── settings.py                # Global settings
-├── data/
-│   └── raw/                       # Raw scraped data (gitignored)
-├── tests/
-│   ├── __init__.py
-│   ├── test_scrapers.py
-│   └── test_processors.py
+│   ├── sources.yaml           # Scraper source config
+│   ├── agent.yaml             # Contextual AI Agent Composer YAML (multi-source)
+│   └── settings.py            # App settings (env vars)
+├── src/
+│   ├── scrapers/
+│   │   ├── unified_scraper.py # RSS-first unified scraper
+│   │   └── __init__.py
+│   ├── storage/
+│   │   ├── contextual_uploader.py  # Uploads to Contextual AI
+│   │   └── local_storage.py        # Saves articles locally as JSON
+│   └── utils/
 ├── scripts/
-│   ├── run_scraper.py             # Main entry point
-│   └── upload_to_contextual.py    # Upload to Contextual AI
-├── requirements.txt
-├── pyproject.toml
+│   └── run_unified.py         # Main entry point
+├── data/
+│   └── scraped_urls.json      # Persistent URL registry (deduplication)
+├── blogs-test.yaml            # Test agent YAML (blogs datastore only)
 ├── .env.example
-└── README.md
+├── requirements.txt
+└── pyproject.toml
 ```
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.11+
-- Contextual AI API key
-- GitHub repository (for CI/CD)
-
-### Local Setup
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/context-crew-blog-scraper.git
-   cd context-crew-blog-scraper
-   ```
-
-2. **Create virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
-
-5. **Run the scraper locally**
-   ```bash
-   # Scrape all sources
-   python scripts/run_scraper.py --all
-
-   # Scrape specific source
-   python scripts/run_scraper.py --source anthropic
-
-   # Dry run (no upload)
-   python scripts/run_scraper.py --all --dry-run
-   ```
-
-### Testing Locally
+## Quick Start
 
 ```bash
-# Run all tests
-pytest tests/ -v
-
-# Run specific test
-pytest tests/test_scrapers.py -v
-
-# Run with coverage
-pytest tests/ --cov=src --cov-report=html
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Add CONTEXTUAL_API_KEY and CONTEXTUAL_DATASTORE_ID to .env
 ```
 
-## ⚙️ Configuration
-
-### Environment Variables (`.env`)
+## Running the Scraper
 
 ```bash
-# Contextual AI
+# List all available sources
+python scripts/run_unified.py --list
+
+# Scrape all sources (50 articles each, 60-day lookback)
+python scripts/run_unified.py
+
+# Scrape a specific source
+python scripts/run_unified.py --source anthropic_research --max-articles 10
+
+# Dry run — scrape but skip upload
+python scripts/run_unified.py --dry-run --max-articles 5
+
+# Force re-scrape already seen URLs
+python scripts/run_unified.py --source langchain --force-rescrape --max-articles 10
+
+# Custom lookback window
+python scripts/run_unified.py --max-articles 50 --lookback-days 120
+
+# Full historical load (no date filter)
+python scripts/run_unified.py --max-articles 100 --lookback-days 0 --force-rescrape
+
+# RSS sources only (most reliable)
+python scripts/run_unified.py --rss-only
+```
+
+## Environment Variables
+
+```bash
 CONTEXTUAL_API_KEY=your_api_key_here
-CONTEXTUAL_DATASTORE_ID=your_datastore_id_here
+CONTEXTUAL_DATASTORE_ID=04546694-8ed1-4bd4-aa64-da058e725c16
 
-# Optional: Rate limiting
+# Optional
 SCRAPE_DELAY_SECONDS=2
 MAX_ARTICLES_PER_SOURCE=50
-
-# Optional: Logging
 LOG_LEVEL=INFO
+DRY_RUN=false
+FORCE_RESCRAPE=false
 ```
 
-### Source Configuration (`config/sources.yaml`)
+## Document Format
 
-```yaml
-sources:
-  anthropic:
-    name: "Anthropic Research"
-    base_url: "https://www.anthropic.com"
-    blog_path: "/research"
-    scraper_class: "AnthropicScraper"
-    enabled: true
-    max_articles: 50
-    
-  llamaindex:
-    name: "LlamaIndex Blog"
-    base_url: "https://www.llamaindex.ai"
-    blog_path: "/blog"
-    scraper_class: "LlamaIndexScraper"
-    enabled: true
-    max_articles: 50
+Each article is ingested as `{source}_{YYYY-MM-DD}_{hash}.txt`:
+
+```
+# Article Title | 2025-01-15
+
+## Metadata
+- Source: LangChain Blog
+- URL: https://...
+- Author: Harrison Chase
+- Tags: agents, rag, langchain
+- Word Count: 1200
+
+## Summary
+Brief summary...
+
+## Content
+Full article text...
 ```
 
-## 📊 Data Schema
+Custom metadata (`source`, `url`, `author`, `published_date`, `tags`, `word_count`) is attached to each document for filtering in the agent.
 
-Each scraped article is stored with the following schema:
+## Agent YAML
 
-```json
-{
-  "id": "anthropic_2024_01_15_claude_3",
-  "source": "anthropic",
-  "source_name": "Anthropic Research",
-  "url": "https://www.anthropic.com/research/claude-3",
-  "title": "Introducing Claude 3",
-  "author": "Anthropic Team",
-  "published_date": "2024-01-15T00:00:00Z",
-  "scraped_at": "2024-01-20T12:00:00Z",
-  "content_text": "Full article text...",
-  "content_html": "<html>...</html>",
-  "summary": "First 500 chars...",
-  "tags": ["claude", "announcement", "models"],
-  "word_count": 1500,
-  "metadata": {
-    "reading_time_minutes": 7,
-    "has_code_blocks": true,
-    "has_images": true
-  }
-}
-```
+`config/agent.yaml` defines a multi-source Contextual AI research agent:
 
-## 🔄 GitHub Actions Pipeline
+- **QueryMultiturnStep** — resolves pronouns in follow-up queries
+- **AgenticResearchStep** — multi-turn research loop with:
+  - `search_docs` — searches all 3 datastores
+  - `web_search` — live web fallback (Gemini 2.5 Flash)
+  - `analyze_file` — analyzes user-uploaded files
+- **GenerateFromResearchStep** — synthesizes final response
 
-The pipeline runs automatically on a schedule and can be triggered manually.
+`blogs-test.yaml` is a simplified single-datastore version for testing the blogs datastore.
 
-### Workflow Triggers
-- **Scheduled**: Daily at 6 AM UTC
-- **Manual**: Via workflow_dispatch
-- **On Push**: To main branch (for testing changes)
+Deploy by uploading the YAML to the Contextual AI Agent Composer.
 
-### Workflow Steps
-1. Checkout code
-2. Set up Python environment
-3. Install dependencies
-4. Run scrapers for all enabled sources
-5. Validate scraped data
-6. Upload to Contextual AI datastore
-7. Generate summary report
-8. Commit updated metadata (optional)
+## GitHub Actions
 
-## 📝 Adding a New Blog Source
+- **`scrape-blogs.yml`** — runs every 3 days at 6 AM UTC, manual trigger with inputs: `source`, `rss_only`, `dry_run`, `max_articles`, `lookback_days`. Secrets required: `CONTEXTUAL_API_KEY`, `CONTEXTUAL_DATASTORE_ID`.
+- **`ci.yml`** — runs on every push/PR: ruff lint, black format check, mypy, pytest.
 
-1. **Create a new scraper class** in `src/scrapers/`:
-   ```python
-   from .base_scraper import BaseScraper
-   
-   class NewBlogScraper(BaseScraper):
-       def get_article_urls(self) -> list[str]:
-           # Implement URL discovery
-           pass
-       
-       def scrape_article(self, url: str) -> dict:
-           # Implement article scraping
-           pass
-   ```
+## Adding a New Source
 
-2. **Add configuration** to `config/sources.yaml`
-
-3. **Register the scraper** in `src/scrapers/__init__.py`
-
-4. **Write tests** in `tests/test_scrapers.py`
-
-## 🛡️ Rate Limiting & Ethics
-
-- Respects `robots.txt` for all sources
-- Implements configurable delays between requests (default: 2 seconds)
-- Uses appropriate User-Agent headers
-- Caches already-scraped URLs to avoid duplicates
-- Stores HTML snapshots for audit purposes
-
-## 📈 Monitoring
-
-The pipeline logs:
-- Number of articles scraped per source
-- Success/failure rates
-- Upload status to Contextual AI
-- Any errors or warnings
-
-Logs are available in GitHub Actions workflow runs.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
-
-## 📄 License
-
-MIT License - see LICENSE file for details.
+1. Add an entry to `config/sources.yaml` with `type: rss` or `type: html`
+2. Run `python scripts/run_unified.py --list` to verify it appears
+3. Test with `--source your_source_name --dry-run`

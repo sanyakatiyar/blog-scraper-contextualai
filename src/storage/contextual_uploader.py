@@ -5,6 +5,7 @@ Handles document ingestion, status tracking, and error recovery.
 """
 
 import io
+import json
 import time
 from typing import Any
 
@@ -91,13 +92,27 @@ class ContextualUploader:
             file_content = document_content.encode("utf-8")
             file_obj = io.BytesIO(file_content)
 
-            # Generate filename from article ID
-            filename = f"{article['id']}.txt"
+            # Generate filename: {source}_{date}_{hash}.txt
+            published = str(article.get("published_date", "") or "")[:10]  # YYYY-MM-DD
+            source_part, url_hash = article["id"].rsplit("_", 1)
+            date_part = f"_{published}" if published and published != "None" else ""
+            filename = f"{source_part}{date_part}_{url_hash}.txt"
+
+            # Build custom metadata for filtering/querying
+            custom_metadata = {
+                "source": article.get("source_name", article.get("source", "")),
+                "url": article.get("url", ""),
+                "author": article.get("author", ""),
+                "published_date": str(article.get("published_date", "")),
+                "tags": ", ".join(article.get("tags", [])),
+                "word_count": str(article.get("word_count", "")),
+            }
 
             # Upload to Contextual AI
             result = self.client.datastores.documents.ingest(
                 datastore_id=datastore_id,
                 file=(filename, file_obj, "text/plain"),
+                metadata=json.dumps({"custom_metadata": custom_metadata}),
             )
 
             document_id = result.id
@@ -173,22 +188,23 @@ class ContextualUploader:
         """
         parts = []
 
-        # Title
-        parts.append(f"# {article.get('title', 'Untitled')}")
+        # Title as clean H1 so Contextual AI uses it as Document Title
+        title = article.get("title", "Untitled")
+        published = str(article.get("published_date", "") or "")[:10]
+        date_suffix = f" | {published}" if published and published != "None" else ""
+        parts.append(f"# {title}{date_suffix}")
         parts.append("")
 
-        # Metadata section
+        # Metadata
         parts.append("## Metadata")
-        parts.append(f"- Source: {article.get('source_name', article.get('source', 'Unknown'))}")
-        parts.append(f"- URL: {article.get('url', 'N/A')}")
-        parts.append(f"- Author: {article.get('author', 'Unknown')}")
-
-        if article.get("published_date"):
-            parts.append(f"- Published: {article['published_date']}")
-
+        source = article.get("source_name", article.get("source", ""))
+        url = article.get("url", "")
+        author = article.get("author", "Unknown")
+        parts.append(f"- Source: {source}")
+        parts.append(f"- URL: {url}")
+        parts.append(f"- Author: {author}")
         if article.get("tags"):
-            parts.append(f"- Tags: {', '.join(article['tags'])}")
-
+            parts.append(f"- Tags: {', '.join(article.get('tags', []))}")
         parts.append(f"- Word Count: {article.get('word_count', 'N/A')}")
         parts.append("")
 

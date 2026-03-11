@@ -19,6 +19,7 @@ from urllib.parse import urlparse
 
 import feedparser
 import requests
+import trafilatura
 import yaml
 from bs4 import BeautifulSoup
 from dateutil import parser as date_parser
@@ -63,6 +64,7 @@ def load_sources_config() -> tuple[dict, dict, dict, dict]:
             "base_url": cfg["base_url"],
             "blog_path": cfg.get("blog_path", "/blog"),
             "default_tags": cfg.get("default_tags", []),
+            "js_rendered": cfg.get("js_rendered", False),
         }
 
     filtering = raw.get("filtering") or {}
@@ -325,6 +327,22 @@ class UnifiedScraper:
             self.logger.warning(f"Failed to parse RSS entry: {e}")
             return None
 
+    def _fetch_js_page(self, url: str) -> bytes | None:
+        """Fetch a JS-rendered page using Playwright headless browser."""
+        try:
+            from playwright.sync_api import sync_playwright
+
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.goto(url, wait_until="networkidle", timeout=30000)
+                content = page.content().encode("utf-8")
+                browser.close()
+                return content
+        except Exception as e:
+            self.logger.debug(f"Playwright fetch failed for {url}: {e}")
+            return None
+
     def _fetch_full_article(self, url: str) -> str | None:
         """Fetch full article content when RSS only has summary."""
         try:
@@ -334,19 +352,9 @@ class UnifiedScraper:
             response = self.session.get(url, timeout=self.request_timeout)
             response.raise_for_status()
 
-            soup = BeautifulSoup(response.content, "lxml")
-
-            # Try common content selectors
-            for selector in ["article", "main", ".post-content", ".content", ".entry-content"]:
-                element = soup.select_one(selector)
-                if element:
-                    # Remove scripts, styles, nav
-                    for tag in element.find_all(["script", "style", "nav", "footer"]):
-                        tag.decompose()
-
-                    text = element.get_text(separator="\n", strip=True)
-                    if len(text) > 200:
-                        return text
+            text = trafilatura.extract(response.content, include_comments=False, include_tables=True)
+            if text and len(text) > 200:
+                return text
 
             return None
 
@@ -374,7 +382,7 @@ class UnifiedScraper:
         self.logger.info(f"Scraping HTML: {blog_url}")
 
         # Get article URLs
-        urls = self._discover_article_urls(blog_url, base_url)
+        urls = self._discover_article_urls(blog_url, base_url, js_rendered=config.get("js_rendered", False))
         self.logger.info(f"Found {len(urls)} article URLs")
 
         # Remove already-scraped URLs
@@ -394,16 +402,21 @@ class UnifiedScraper:
 
         return articles
 
-    def _discover_article_urls(self, blog_url: str, base_url: str) -> list[str]:
+    def _discover_article_urls(self, blog_url: str, base_url: str, js_rendered: bool = False) -> list[str]:
         """Discover article URLs from a blog listing page."""
         try:
             domain = urlparse(blog_url).netloc
             rate_limiter.wait(domain)
 
-            response = self.session.get(blog_url, timeout=self.request_timeout)
-            response.raise_for_status()
+            if js_rendered:
+                html_content = self._fetch_js_page(blog_url)
 
-            soup = BeautifulSoup(response.content, "lxml")
+            if not js_rendered or not html_content:
+                response = self.session.get(blog_url, timeout=self.request_timeout)
+                response.raise_for_status()
+                html_content = response.content
+
+            soup = BeautifulSoup(html_content, "lxml")
             urls = []
 
             for link in soup.find_all("a", href=True):
@@ -427,6 +440,12 @@ class UnifiedScraper:
                     r"/search",
                     r"/about",
                     r"/contact",
+                    r"/products",
+                    r"/solutions",
+                    r"/platform",
+                    r"/company",
+                    r"/docs",
+                    r"/api",
                     r"\.(jpg|png|gif|pdf|css|js)$",
                 ]
                 for ep in FILTERING.get("exclude_patterns", []):
@@ -462,65 +481,45 @@ class UnifiedScraper:
             domain = urlparse(url).netloc
             rate_limiter.wait(domain)
 
-            response = self.session.get(url, timeout=self.request_timeout)
-            response.raise_for_status()
+            if config.get("js_rendered"):
+                html_content = self._fetch_js_page(url)
+                if not html_content:
+                    return None
+            else:
+                response = self.session.get(url, timeout=self.request_timeout)
+                response.raise_for_status()
+                html_content = response.content
 
-            soup = BeautifulSoup(response.content, "lxml")
+            # Use trafilatura for smart article extraction
+            meta = trafilatura.extract_metadata(html_content, default_url=url)
+            content_text = trafilatura.extract(
+                html_content, include_comments=False, include_tables=True
+            )
 
-            # Extract title
-            title = None
-            for selector in ["h1", 'meta[property="og:title"]']:
-                if selector.startswith("meta"):
-                    meta = soup.select_one(selector)
-                    if meta:
-                        title = meta.get("content")
-                else:
-                    elem = soup.select_one(selector)
-                    if elem:
-                        title = elem.get_text(strip=True)
-                if title:
-                    break
+            if not content_text or len(content_text) < 200:
+                return None
 
+            # Get title from trafilatura metadata, fall back to og:title
+            title = meta.title if meta else None
+            if not title:
+                soup = BeautifulSoup(html_content, "lxml")
+                og = soup.select_one('meta[property="og:title"]')
+                title = str(og.get("content") or "") if og else None
             if not title:
                 return None
 
-            # Extract content
-            content_text = ""
-            for selector in ["article", "main", ".post-content", ".content", ".entry-content"]:
-                elem = soup.select_one(selector)
-                if elem:
-                    for tag in elem.find_all(["script", "style", "nav", "footer"]):
-                        tag.decompose()
-                    content_text = elem.get_text(separator="\n", strip=True)
-                    if len(content_text) > 200:
-                        break
-
-            if len(content_text) < 200:
-                return None
-
-            # Extract date
+            # Get author and date from trafilatura metadata
+            author = (meta.author if meta else None) or config["name"]
             published_date = None
+            if meta and meta.date:
+                try:
+                    published_date = date_parser.parse(meta.date)
+                except (ValueError, TypeError):
+                    pass
 
-            for selector in ["time", 'meta[property="article:published_time"]', '[class*="date"]']:
-                elem = soup.select_one(selector)
-                if elem:
-                    date_str = (
-                        elem.get("datetime") or elem.get("content") or elem.get_text(strip=True)
-                    )
-                    try:
-                        published_date = date_parser.parse(date_str)
-                        break
-                    except (ValueError, TypeError):
-                        continue
-
-            # Extract author
-            author = None
-            for selector in ['[class*="author"]', '[rel="author"]']:
-                elem = soup.select_one(selector)
-                if elem:
-                    author = elem.get_text(strip=True)
-                    if author:
-                        break
+            # Fallback date extraction if trafilatura couldn't find it
+            if not published_date:
+                published_date = self._extract_date_fallback(html_content, url)
 
             return self._create_article_dict(
                 source_id=source_id,
@@ -528,7 +527,7 @@ class UnifiedScraper:
                 url=url,
                 title=title,
                 content_text=content_text,
-                author=author or config["name"],
+                author=author,
                 published_date=published_date,
                 tags=list(config.get("default_tags", [])),
             )
@@ -536,6 +535,69 @@ class UnifiedScraper:
         except Exception as e:
             self.logger.warning(f"Failed to scrape article {url}: {e}")
             return None
+
+    def _extract_date_fallback(self, html_content: bytes, url: str) -> Any | None:
+        """
+        Try harder to extract a publish date when trafilatura comes up empty.
+        Checks JSON-LD, common meta tags, and <time> elements.
+        """
+        import json as _json
+        import re as _re
+
+        try:
+            soup = BeautifulSoup(html_content, "lxml")
+
+            # 1. JSON-LD structured data
+            for script in soup.find_all("script", type="application/ld+json"):
+                try:
+                    data = _json.loads(script.string or "")
+                    # Handle both single object and list
+                    items = data if isinstance(data, list) else [data]
+                    for item in items:
+                        for field in ("datePublished", "dateCreated", "dateModified"):
+                            val = item.get(field)
+                            if val:
+                                return date_parser.parse(val)
+                except Exception:
+                    continue
+
+            # 2. Common meta tags
+            meta_selectors = [
+                'meta[property="article:published_time"]',
+                'meta[name="publish_date"]',
+                'meta[name="date"]',
+                'meta[name="DC.date"]',
+                'meta[itemprop="datePublished"]',
+                'meta[property="og:published_time"]',
+            ]
+            for selector in meta_selectors:
+                tag = soup.select_one(selector)
+                if tag and tag.get("content"):
+                    try:
+                        return date_parser.parse(str(tag["content"]))
+                    except (ValueError, TypeError):
+                        continue
+
+            # 3. <time> element with datetime attribute
+            time_tag = soup.select_one("time[datetime]")
+            if time_tag:
+                try:
+                    return date_parser.parse(str(time_tag["datetime"]))
+                except (ValueError, TypeError):
+                    pass
+
+            # 4. URL date pattern (e.g. /2026/01/15/ or /2026-01-15-)
+            match = _re.search(r"/(\d{4})[/-](\d{2})[/-](\d{2})", url)
+            if match:
+                try:
+                    return date_parser.parse(f"{match.group(1)}-{match.group(2)}-{match.group(3)}")
+                except (ValueError, TypeError):
+                    pass
+
+        except Exception:
+            pass
+
+        return None
 
     # =========================================================================
     # Helpers

@@ -1,0 +1,177 @@
+version: "0.1"
+inputs:
+  query: str
+outputs:
+  attribution_result: AttributionResult
+  generation_result: GenerationResult
+  groundedness_scores: List[GroundednessScore]
+  response: str
+ui_output: generation_result
+nodes:
+  __outputs__:
+    type: output
+    input_mapping:
+      attribution_result: response_gen_from_research_step#attribution_result
+      generation_result: response_gen_from_research_step#generation_result
+      groundedness_scores: response_gen_from_research_step#groundedness_scores
+      response: response_gen_from_research_step#response
+  agentic_research_step:
+    type: AgenticResearchStep
+    input_mapping:
+      message_history: create_message_history_step#message_history
+    ui_stream_types:
+      retrievals: true
+    config:
+      tools_config:
+        - name: datastore_search
+          description: |
+            Search a corpus of AI/ML blog posts from companies like Anthropic, LlamaIndex,
+            LangChain, Cohere, Pinecone, HuggingFace, Langfuse, Weaviate, and others.
+            Each result includes metadata: source (company name), url, author, published_date,
+            tags, word_count. Each result includes a CITE_ID for attribution.
+          step_config:
+            type: SearchUnstructuredDataStep
+            ui_stream_types:
+              query_reformulation: true
+            config:
+              datastores:
+                - 04546694-8ed1-4bd4-aa64-da058e725c16
+              enable_query_decomposition: false
+              enable_query_expansion: true
+              filter_retrievals: false
+              lexical_alpha: 0.1
+              rerank_retrievals: true
+              rerank_top_k: 15
+              reranker_score_filter_threshold: 0
+              semantic_alpha: 0.9
+              should_check_retrieval_need: false
+              top_k: 50
+              untrusted_filter_prompt: |-
+                You are a precision filter for domain-specific documentation. Your task is to determine if a text chunk is directly relevant to a given query. Output only Yes or No.
+
+                Evaluate relevance based on these criteria:
+
+                * Contains specific details that directly answer or address the query
+                * Provides factual information central to the query topic
+                * Offers concrete examples or applications related to the query
+                * Explains key concepts or definitions needed to understand the query
+                * Contains relevant supporting evidence or documentation
+
+                Consider a chunk relevant if it:
+
+                * Directly addresses the queried topic/concept
+                * Provides essential context required to understand the query
+                * Contains prerequisite information needed for comprehension
+                * Documents related exceptions or special cases
+                * Describes important relationships with the queried topic
+
+                Reject chunks that:
+
+                * Contain only general introductions or section headers
+                * Have tangential references without substantial detail
+                * Describe unrelated topics or concepts
+                * Contain promotional or non-substantive content
+                * Only provide navigational/structural information
+
+                Example:
+                Query: "How to configure user authentication settings"
+                Text: "Chapter 3: Security Features. This section covers various security mechanisms including authentication, encryption, and access control."
+                Response: No
+
+                YOU MUST:
+                * Output only Yes or No
+                * Stop immediately after your response
+                * Be strict about relevance
+                * Reject vague or general content
+                * Reject all chunks if the query is conversational, generic, or non-technical (e.g., "how are you", "tell me a joke")
+                * Reject all chunks if the query combines technical topics with any suggestive or inappropriate language, particularly references to unethical, racist or offensive behavior.
+      agent_config:
+        agent_loop:
+          identity_guidelines_prompt: |
+            You are a retrieval-augmented assistant created by Contextual AI. Your purpose is to provide factual, grounded answers by retrieving information via tools and then synthesizing a response based only on what you retrieved.
+          model_name_or_path: vertex_ai/claude-sonnet-4-5@20250929
+          num_turns: 10
+          research_guidelines_prompt: |
+            You have access to `datastore_search` — searches AI/ML blog posts from
+            Anthropic, LlamaIndex, LangChain, Cohere, Pinecone, HuggingFace, Langfuse,
+            Weaviate, and others. Returns SEARCH_RESULTS with CITE_IDs for attribution.
+
+            MANDATORY: Call datastore_search for every question. No exceptions.
+
+            Critical query rule:
+            - Search by TOPIC, never by source type. NEVER search for "blog", "post",
+              or "article" — the corpus IS blog posts, those words won't match content.
+            - For "latest blogs" / "recent posts" / "what's new": run 2-3 broad topic
+              searches like "LLM agents 2025", "RAG retrieval 2026", "model releases
+              evals fine-tuning" to surface recently published articles.
+            - For topic queries: search with key concepts and AI/ML terminology.
+            - Breadth then depth: start broad, follow up with specific searches to fill gaps.
+  create_message_history_step:
+    type: CreateMessageHistoryStep
+    input_mapping:
+      query: __inputs__#query
+    ui_stream_types:
+      retrievals: false
+    config:
+      should_check_retrieval_need: false
+      untrusted_no_retrieval_system_prompt: |
+        You are an AI RAG agent created by Contextual to help answer questions and complete tasks posed by users. Your capabilities include accurately retrieving/reranking information from linked datastores and using these retrievals to generate factual, grounded responses. You are powered by leading document parsing, retrieval, reranking, and grounded generation models. Users can impact the information you have access to by uploading files into your linked datastores. Full documentation, API specs, and guides on how to use Contextual, including agents like yourself, can you found at docs.contextual.ai. 
+
+        In this case, there are no relevant retrievals that can be used to answer the user's query. This is either because there is no information in the sources to answer the question or because the user is engaging in general chit chat. Respond according to the following guidelines:
+
+        - If the user is engaging in general pleasantries ("hi", "how goes it", etc.), you can respond in kind. But limit this to only a brief greeting or general acknowledgement
+        - Your response should center on describing your capabilities and encouraging the user to ask a question that is relevant to the sources you have access to.  You can also encourage them to upload relevant documents and files to your linked datastore(s). 
+        - DO NOT answer, muse about, or follow-up on any general questions or asks. DO NOT assume that you have knowledge about any particular topic. DO NOT assume access to any particular source of information. 
+        - DO NOT engage in character play. You must maintain a friendly, professional, and neutral tone at all times
+      untrusted_system_prompt: |-
+        You are a helpful AI assistant created by Contextual AI to answer questions about relevant documentation provided to you. Your responses should be precise, accurate, and sourced exclusively from the provided information. Please follow these guidelines:
+        * Only use information from the provided documentation. Avoid opinions, speculation, or assumptions.
+        * Use the exact terminology and descriptions found in the provided content.
+        * Keep answers concise and relevant to the user's question.
+        * Use acronyms and abbreviations exactly as they appear in the documentation or query.
+        * Apply markdown if your response includes lists, tables, or code. Do not include backticks around markdown tables.
+        * Directly answer the question, then STOP. Avoid additional explanations unless specifically relevant.
+        * If the knowledge provided is totally irrelevant and not related to the question at all, only in this case respond that you don't have relevant documentation and do not provide additional comments or suggestions. Ignore anything that cannot be used to directly answer this query.
+
+        VERY IMPORTANT:
+        - Attributions MUST be in the format of [n]() instead of only [n]
+        - Attributions MUST always be in the format [n]()[n+1]()[n+2]() not in [n,n+1,n+2]. For example attributions should not be [3,4,5] but [3]()[4]()[5](). Do not repeat the same number if it is attributed multiple times.
+        - Never add extra () in attributions. Only use [n]() and not [n]()()
+  response_gen_from_research_step:
+    type: ResponseGenFromResearchStep
+    input_mapping:
+      chunks_info: agentic_research_step#chunks_info
+      message_history: create_message_history_step#message_history
+      research: agentic_research_step#research
+    ui_stream_types:
+      attribution: true
+      generation: true
+      groundedness: true
+    config:
+      calculate_groundedness: false
+      identity_guidelines_prompt: |
+        You are a retrieval-augmented assistant created by Contextual AI. Your purpose is to provide factual, grounded answers by retrieving information via tools and then synthesizing a response based only on what you retrieved.
+      model_name_or_path: vertex_ai/claude-sonnet-4-5@20250929
+      response_guidelines_prompt: |
+        - Write a concise, well-structured answer in **Markdown** (use short headings, bullets, and brief paragraphs).
+        - If a needed fact is not present in the latest **SEARCH_RESULTS**, write exactly: *No information found in retrieved sources.*
+        ## ‼ CITATION RULES (MUST FOLLOW EXACTLY)
+        - Cite **every factual sentence** with one or more citations placed **immediately before the sentence's final punctuation**.
+        - Citation token is **exactly** `[number]()` where `number` is a **CITE_ID** from the current **SEARCH_RESULTS**.
+          - Regex each citation must match: `\[\d+\]\(\)`
+          - Multiple sources: space-separated tokens, e.g. `[1]() [5]() [11]()`
+        - **Valid range:** You may only use `CITE_ID` values **present** in the current **SEARCH_RESULTS** (do not invent or reuse IDs from prior calls).
+        - Do **not** place citations in headings, code blocks, figure captions, or inside quotations; instead, cite the sentence that contains or introduces the factual claim.
+        - Verbatim quotes (≥5 words) must be in quotes with a citation after the sentence.
+        ### Quick examples
+        - Kafka was a Prague-born writer active in the early 20th century. [3]()
+        - Major works include *The Trial* and *The Metamorphosis*. [3]() [7]()
+        ## Tools Footnote (required when any tools are used)
+        - After your answer, add a final section that summarizes each tool call **in chronological order**, including the **arguments** actually used.
+        - Format (one line per call): `- tool_name(arg1=value1, arg2=value2, ...)`
+        - Keep arguments concise; truncate long strings to 120 chars with `…`; redact secrets/tokens; omit large payload fields.
+        ## Preflight Self-Check (must pass before submitting)
+        1) Every factual sentence has ≥1 `[number]()` citation.
+        2) All citation numbers correspond to **CITE_IDs** in the current **SEARCH_RESULTS**.
+        3) All citations match `\[\d+\]\(\)`; no commas/ranges/missing parentheses.
+        4) No claims contradict retrieved content; missing facts use the exact missing-info sentence.

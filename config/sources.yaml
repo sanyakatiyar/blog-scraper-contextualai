@@ -165,6 +165,19 @@ rss_sources:
       - retrieval
       - tooling
 
+  dbreunig:
+    name: "Drew Breunig"
+    rss_url: "https://www.dbreunig.com/feed.xml"
+    base_url: "https://www.dbreunig.com"
+    enabled: true
+    priority: 2
+    default_tags:
+      - llm
+      - agents
+      - embeddings
+      - data
+      - analysis
+
 # =============================================================================
 # HTML Sources (Fallback - May break if sites redesign)
 # =============================================================================
@@ -175,6 +188,7 @@ html_sources:
     base_url: "https://www.llamaindex.ai"
     blog_path: "/blog"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - llamaindex
@@ -224,6 +238,7 @@ html_sources:
     base_url: "https://www.databricks.com"
     blog_path: "/blog"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - agents
@@ -250,6 +265,7 @@ html_sources:
     base_url: "https://mistral.ai"
     blog_path: "/news"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - models
@@ -263,6 +279,7 @@ html_sources:
     base_url: "https://arize.com"
     blog_path: "/blog"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - agent-evals
@@ -271,7 +288,7 @@ html_sources:
       - reliability
       - security
 
-  langfuse_blog:
+  t_blog:
     name: "Langfuse Blog"
     base_url: "https://langfuse.com"
     blog_path: "/blog"
@@ -289,6 +306,7 @@ html_sources:
     base_url: "https://blog.ragas.io"
     blog_path: "/"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - rag-eval
@@ -301,7 +319,7 @@ html_sources:
     name: "Drew Breunig"
     base_url: "https://www.dbreunig.com"
     blog_path: "/"
-    enabled: true
+    enabled: false  # moved to RSS
     priority: 2
     default_tags:
       - llm
@@ -315,6 +333,7 @@ html_sources:
     base_url: "https://www.trychroma.com"
     blog_path: "/updates"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - vector-database
@@ -328,6 +347,7 @@ html_sources:
     base_url: "https://www.trychroma.com"
     blog_path: "/research"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - vector-database
@@ -341,6 +361,7 @@ html_sources:
     base_url: "https://manus.im"
     blog_path: "/blog"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - agents
@@ -353,6 +374,7 @@ html_sources:
     base_url: "https://www.crewai.com"
     blog_path: "/blog"
     enabled: true
+    js_rendered: true
     priority: 2
     default_tags:
       - agents
@@ -366,6 +388,7 @@ html_sources:
     base_url: "https://contextual.ai"
     blog_path: "/blog"
     enabled: true
+    js_rendered: true
     priority: 1
     default_tags:
       - rag
@@ -385,7 +408,7 @@ global:
   retry_delay_seconds: 5
   request_timeout_seconds: 30
   max_articles_per_source: 20
-  lookback_days: 120
+  lookback_days: 60
 
 # =============================================================================
 # Content Filtering
